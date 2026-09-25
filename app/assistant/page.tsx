@@ -154,7 +154,7 @@ export default function AssistantPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-slate-50 border border-slate-200 text-slate-600 hover:text-teal-700 transition"
                         >
-                          <span className="truncate max-w-[200px]">{c.title}</span>
+                          <span className="truncate max-w-200px">{c.title}</span>
                           <FiExternalLink className="w-2.5 h-2.5 ml-1 shrink-0" />
                         </a>
                       ))}

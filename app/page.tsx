@@ -27,7 +27,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 bg-gradient-to-b from-teal-50/50 via-slate-50 to-slate-50 border-b border-slate-200">
+      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 bg-linear-to-b from-teal-50/50 via-slate-50 to-slate-50 border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-100/80 border border-teal-200 text-teal-800 text-xs font-semibold uppercase tracking-wider mb-6">
             <FiShield className="w-3.5 h-3.5 text-teal-700" />
@@ -106,11 +106,10 @@ export default function LandingPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`inline-flex items-center px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
-                    active
-                      ? "border-teal-700 text-teal-700"
-                      : "border-transparent text-slate-500 hover:text-slate-900"
-                  }`}
+                  className={`inline-flex items-center px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${active
+                    ? "border-teal-700 text-teal-700"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                    }`}
                 >
                   <Icon className="w-4 h-4 mr-1.5" />
                   {tab.label}
@@ -315,7 +314,7 @@ export default function LandingPage() {
       {/* 4. Trust & Freshness Section */}
       <section className="py-16 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-slate-900 to-teal-950 rounded-2xl p-8 sm:p-12 text-white shadow-lg">
+          <div className="bg-linear-to-r from-slate-900 to-teal-950 rounded-2xl p-8 sm:p-12 text-white shadow-lg">
             <div className="max-w-3xl">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded bg-teal-900/60 border border-teal-700 text-teal-300 text-xs font-semibold uppercase tracking-wider mb-4">
                 <FiShield className="w-3.5 h-3.5" />
