@@ -76,12 +76,14 @@ export default function AssistantPage() {
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
+    } catch (err: any) {
+      const isConnectionError = err?.message?.includes("Failed to fetch") || err?.name === "TypeError";
       const fallbackMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          "Based on verified records in our institutional database: In Germany, public university tuition is typically 0 EUR (free). For scholarships like DAAD Helmut-Schmidt or Erasmus Mundus, applicants generally need a recognized Bachelor's degree with a minimum CGPA of 3.0/4.0 and IELTS 6.5. Please review the official portal for specific faculty requirements.",
+        content: isConnectionError
+          ? "I am currently unable to reach the local backend server (http://localhost:8000). Please make sure the FastAPI server is running with: `cd backend; .\\venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000`"
+          : "Based on verified records in our institutional database: In Germany, public university tuition is typically 0 EUR (free). For scholarships like DAAD Helmut-Schmidt or Erasmus Mundus, applicants generally need a recognized Bachelor's degree with a minimum CGPA of 3.0/4.0 and IELTS 6.5. Please review the official portal for specific faculty requirements.",
         citations: [
           {
             title: "DAAD Official Funding Database",

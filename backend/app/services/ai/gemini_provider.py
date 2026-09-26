@@ -1,17 +1,18 @@
 import json
 import logging
 import httpx
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.services.ai.base import AIProvider
+from app.services.ai.mock_provider import MockAIProvider
 
 logger = logging.getLogger(__name__)
 
 
 class GeminiProvider(AIProvider):
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-3-flash-preview"):
         self.api_key = api_key
         self.model_name = model_name
-        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
+        self.fallback_provider = MockAIProvider()
 
     async def generate_response(
         self,
@@ -20,13 +21,12 @@ class GeminiProvider(AIProvider):
         context: Optional[Dict[str, Any]] = None,
     ) -> str:
         if not self.api_key:
-            raise ValueError("GEMINI_API_KEY is not configured.")
+            return await self.fallback_provider.generate_response(prompt, system_instruction, context)
 
-        url = f"{self.base_url}?key={self.api_key}"
+        # Build prompt contents
         contents = []
-
         if context:
-            context_str = f"Verified Context Information:\n{json.dumps(context, indent=2)}\n\n"
+            context_str = f"Verified Context Information:\n{json.dumps(context, indent=2, ensure_ascii=False)}\n\n"
             contents.append({"parts": [{"text": context_str + prompt}]})
         else:
             contents.append({"parts": [{"text": prompt}]})
@@ -35,27 +35,35 @@ class GeminiProvider(AIProvider):
         if system_instruction:
             payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 404 and self.model_name not in ["gemini-2.0-flash", "gemini-1.5-flash"]:
-                # Fallback to standard publicly supported Google AI Studio model
-                fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={self.api_key}"
-                resp = await client.post(fallback_url, json=payload)
-                if resp.status_code == 404:
-                    fallback_url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
-                    resp = await client.post(fallback_url2, json=payload)
+        # Candidate models to try in order of priority if high demand (503), quota limits (429), or deprecated model (404) occur
+        models_to_try: List[str] = [self.model_name]
+        for fallback_model in ["gemini-3-flash-preview", "gemini-3.6-flash", "gemini-flash-latest"]:
+            if fallback_model not in models_to_try:
+                models_to_try.append(fallback_model)
 
-            if resp.status_code != 200:
-                logger.error(f"Gemini API returned error ({resp.status_code}): {resp.text}")
-                # Safe deterministic answer rather than crashing
-                return "Information retrieved from verified institutional sources. Ensure your academic credentials align with published thresholds."
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "")
-            return "No response generated."
+        last_error = None
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            for current_model in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={self.api_key}"
+                try:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "")
+                        logger.warning(f"Gemini {current_model} returned empty candidates.")
+                    else:
+                        last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                        logger.warning(f"Gemini {current_model} returned {resp.status_code}. Trying next available model...")
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"Gemini {current_model} request failed ({e}). Trying next model...")
+
+        logger.error(f"All Gemini models exhausted. Last error: {last_error}. Falling back to rule-based engine.")
+        return await self.fallback_provider.generate_response(prompt, system_instruction, context)
 
     async def extract_structured_json(
         self,
@@ -68,16 +76,20 @@ class GeminiProvider(AIProvider):
             f"Return ONLY valid raw JSON with no Markdown backticks or markdown fences:\n\n"
             f"{text}"
         )
-        response_text = await self.generate_response(prompt)
-        # Clean potential markdown backticks
-        clean = response_text.strip()
-        if clean.startswith("```json"):
-            clean = clean[7:]
-        if clean.startswith("```"):
-            clean = clean[3:]
-        if clean.endswith("```"):
-            clean = clean[:-3]
-        return json.loads(clean.strip())
+        try:
+            response_text = await self.generate_response(prompt)
+            # Clean potential markdown backticks
+            clean = response_text.strip()
+            if clean.startswith("```json"):
+                clean = clean[7:]
+            if clean.startswith("```"):
+                clean = clean[3:]
+            if clean.endswith("```"):
+                clean = clean[:-3]
+            return json.loads(clean.strip())
+        except Exception as e:
+            logger.warning(f"Failed to parse LLM structured JSON response ({e}), using mock extractor.")
+            return await self.fallback_provider.extract_structured_json(text, schema_description)
 
     async def parse_search_intent(self, natural_query: str) -> Dict[str, Any]:
         schema = (
@@ -89,4 +101,4 @@ class GeminiProvider(AIProvider):
             return await self.extract_structured_json(natural_query, schema)
         except Exception as e:
             logger.warning(f"Failed to parse search intent via Gemini: {e}")
-            return {}
+            return await self.fallback_provider.parse_search_intent(natural_query)

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # AI Providers
     AI_PROVIDER: str = "gemini"  # "gemini", "openai", "mock"
     AI_API_KEY: str = ""
-    AI_MODEL: str = "gemini-3.8-flash"
+    AI_MODEL: str = "gemini-3-flash-preview"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
