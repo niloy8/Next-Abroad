@@ -86,16 +86,14 @@ export const Navbar = () => {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`relative inline-flex items-center px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium whitespace-nowrap transition-all duration-150 ${
-                  isActive
+                className={`relative inline-flex items-center px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium whitespace-nowrap transition-all duration-150 ${isActive
                     ? "bg-teal-50 text-teal-900 font-semibold shadow-xs ring-1 ring-teal-600/15"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                }`}
+                  }`}
               >
                 <Icon
-                  className={`w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1.5 transition-colors ${
-                    isActive ? "text-teal-700" : "text-slate-400 group-hover:text-slate-600"
-                  }`}
+                  className={`w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1.5 transition-colors ${isActive ? "text-teal-700" : "text-slate-400 group-hover:text-slate-600"
+                    }`}
                 />
                 <span>{link.name}</span>
                 {link.badge && (
@@ -130,13 +128,12 @@ export const Navbar = () => {
                 <div className="w-6 h-6 rounded-lg bg-linear-to-tr from-teal-700 to-teal-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                   {user.full_name?.charAt(0) || "U"}
                 </div>
-                <span className="font-semibold text-xs max-w-[120px] truncate text-slate-700 group-hover:text-slate-900">
+                <span className="font-semibold text-xs max-w-120px truncate text-slate-700 group-hover:text-slate-900">
                   {user.full_name || "Account"}
                 </span>
                 <FiChevronDown
-                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                    userDropdown ? "rotate-180" : ""
-                  }`}
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${userDropdown ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -247,11 +244,10 @@ export const Navbar = () => {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
                     ? "bg-teal-50 text-teal-900 font-semibold"
                     : "text-slate-700 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <div className="flex items-center">
                   <Icon className={`w-4 h-4 mr-3 ${isActive ? "text-teal-700" : "text-slate-400"}`} />
