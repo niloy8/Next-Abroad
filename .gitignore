@@ -45,8 +45,7 @@ yarn-error.log*
 .env.local
 .env.production
 backend/.env
-
+.env.example
 # Vercel & TS
 .vercel
 *.tsbuildinfo
-
