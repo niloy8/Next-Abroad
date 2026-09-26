@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiProvider(AIProvider):
-    def __init__(self, api_key: str, model_name: str = "gemini-3-flash-preview"):
+    def __init__(self, api_key: str, model_name: str = "gemini-3.5-flash-lite"):
         self.api_key = api_key
         self.model_name = model_name
         self.fallback_provider = MockAIProvider()
@@ -35,14 +35,20 @@ class GeminiProvider(AIProvider):
         if system_instruction:
             payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
-        # Candidate models to try in order of priority if high demand (503), quota limits (429), or deprecated model (404) occur
+        # Candidate models to try in order of priority (Lite models have generous separate quotas)
         models_to_try: List[str] = [self.model_name]
-        for fallback_model in ["gemini-3-flash-preview", "gemini-3.6-flash", "gemini-flash-latest"]:
+        for fallback_model in [
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-3.6-flash",
+            "gemini-flash-latest",
+        ]:
             if fallback_model not in models_to_try:
                 models_to_try.append(fallback_model)
 
         last_error = None
-        async with httpx.AsyncClient(timeout=25.0) as client:
+        async with httpx.AsyncClient(timeout=45.0) as client:
             for current_model in models_to_try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={self.api_key}"
                 try:

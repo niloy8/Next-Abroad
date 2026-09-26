@@ -1,8 +1,18 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FiCompass, FiShield, FiCheckCircle, FiFileText, FiGlobe } from "react-icons/fi";
 
 export const Footer = () => {
+  const pathname = usePathname();
+
+  // Do not render footer on full-height assistant chat page
+  if (pathname === "/assistant") {
+    return null;
+  }
+
   return (
     <footer className="border-t border-slate-200 bg-white mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

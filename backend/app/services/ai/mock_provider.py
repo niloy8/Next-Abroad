@@ -17,25 +17,65 @@ class MockAIProvider(AIProvider):
         system_instruction: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
     ) -> str:
-        prompt_lower = prompt.lower()
+        prompt_lower = prompt.lower().strip()
+
+        # Handle simple greetings
+        if re.search(r"^(hi|hello|hey|good\s+(morning|afternoon|evening))\b", prompt_lower):
+            return (
+                "Hello! I am your **StudyPath AI Advisor**.\n\n"
+                "I can help you evaluate scholarships, check your eligibility based on your CGPA and language scores, "
+                "break down tuition & blocked account living costs, or structure your document roadmap.\n\n"
+                "Which country or degree level are you interested in pursuing?"
+            )
+
+        # Handle scholarship / CGPA queries
+        if "scholarship" in prompt_lower or "cgpa" in prompt_lower or "gpa" in prompt_lower:
+            student_cgpa = None
+            if context and "student_profile" in context:
+                student_cgpa = context["student_profile"].get("cgpa")
+            
+            sch_list = []
+            if context and "verified_scholarships" in context:
+                sch_list = context["verified_scholarships"]
+
+            lines = ["Here is an evaluation based on verified database criteria:\n"]
+            if student_cgpa:
+                lines.append(f"**Your Profile CGPA:** {student_cgpa} / 4.0\n")
+            
+            if sch_list:
+                for s in sch_list[:4]:
+                    req_gpa = s.get("min_cgpa", 3.0)
+                    status_str = "Eligible" if (student_cgpa and student_cgpa >= req_gpa) else "Competitive / Review"
+                    lines.append(
+                        f"- **{s.get('name')}** ({s.get('country')}) — Min CGPA: {req_gpa} | {s.get('funding_type', 'Fully Funded')} [{status_str}]"
+                    )
+                lines.append("\nFor German public universities, tuition is 0 EUR. For Sweden/Canada, full funding depends on meeting academic cutoffs.")
+            else:
+                lines.append(
+                    "- **DAAD Helmut-Schmidt-Programme (Germany)**: Min CGPA 3.0, IELTS 6.5, Fully Funded.\n"
+                    "- **Swedish Institute Scholarships (Sweden)**: Min CGPA 3.0, IELTS 6.5, Full Tuition + Monthly Stipend.\n"
+                    "- **Erasmus Mundus Joint Masters (EU)**: Min CGPA 3.2, IELTS 6.5, Fully Funded.\n"
+                    "- **ETH Zurich ESOP (Switzerland)**: High merit (Min CGPA 3.7+)."
+                )
+            lines.append("\nWould you like guidance on specific program deadlines or document preparation?")
+            return "\n".join(lines)
 
         # Handle eligibility queries
         if "eligible" in prompt_lower or "eligibility" in prompt_lower:
             if context and "scholarship" in context:
                 sch = context["scholarship"]
                 return (
-                    f"Based on the official requirements for **{sch.get('name', 'this scholarship')}**:\n\n"
+                    f"Based on official requirements for **{sch.get('name', 'this scholarship')}**:\n\n"
                     f"- **Minimum CGPA**: {sch.get('min_cgpa', 'N/A')}\n"
                     f"- **Language Requirement**: IELTS {sch.get('min_ielts', 'N/A')} / TOEFL {sch.get('min_toefl', 'N/A')}\n"
                     f"- **Funding**: {sch.get('funding_type', 'Full')}\n"
                     f"- **Deadline**: {sch.get('application_deadline', 'Verified')}\n\n"
-                    f"To verify your exact eligibility, make sure your completed profile meets or exceeds these criteria. "
-                    f"Check the official portal at {sch.get('official_application_url', 'the university website')}."
+                    f"Check official portal at {sch.get('official_application_url', 'the university website')}."
                 )
             return (
-                "To determine your eligibility, our deterministic matching engine compares your current CGPA, "
-                "English language test scores (IELTS/TOEFL/PTE), nationality, and graduation year against the official criteria. "
-                "Please ensure your profile is at least 80% complete in the Onboarding section."
+                "To determine your exact eligibility, our deterministic matching engine compares your CGPA, "
+                "English language test scores (IELTS/TOEFL), and nationality against published institutional requirements. "
+                "Ensure your profile is complete under the Onboarding section."
             )
 
         # Handle document questions
@@ -56,7 +96,7 @@ class MockAIProvider(AIProvider):
         if "cost" in prompt_lower or "money" in prompt_lower or "tuition" in prompt_lower or "budget" in prompt_lower:
             return (
                 "Study abroad costs generally consist of two main components:\n\n"
-                "- **Annual Tuition**: Varies significantly by country. In Germany, most public universities charge zero tuition (only ~€350/semester social contribution). In the US, UK, and Canada, tuition ranges from $15,000 to $45,000/year.\n"
+                "- **Annual Tuition**: Varies significantly by country. In Germany, public universities charge zero tuition (only ~€350/semester social contribution). In the US, UK, and Canada, tuition ranges from $15,000 to $45,000/year.\n"
                 "- **Living Expenses**: Includes accommodation, groceries, health insurance, and transport. For example, Germany requires a blocked account of approx. €11,904/year; Sweden requires approx. 10,000 SEK/month.\n\n"
                 "Use our **Cost Calculator** to simulate first-year vs recurring annual costs in your local currency."
             )

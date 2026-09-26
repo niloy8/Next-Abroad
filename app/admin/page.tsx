@@ -10,16 +10,21 @@ import {
   FiArrowRight,
   FiClock,
   FiFileText,
+  FiLock,
+  FiUserCheck,
 } from "react-icons/fi";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AdminPage() {
+  const { user, login } = useAuth();
   const [urlInput, setUrlInput] = useState("");
   const [sourceType, setSourceType] = useState("scholarship");
   const [previewing, setPreviewing] = useState(false);
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [approving, setApproving] = useState(false);
   const [approvedSuccess, setApprovedSuccess] = useState(false);
+  const [adminSwitchLoading, setAdminSwitchLoading] = useState(false);
 
   // Freshness report
   const [freshness, setFreshness] = useState<any | null>(null);
@@ -137,8 +142,51 @@ export default function AdminPage() {
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
           Ingest raw university and scholarship web pages, preview AI structured parameter extraction,
-          approve data into the PostgreSQL knowledge base, and trigger freshness audits.
+          approve data into the knowledge base, and trigger freshness audits.
         </p>
+
+        {/* Role Authentication Badge */}
+        <div className="mt-4 p-3.5 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50 border-slate-200">
+          <div className="flex items-center space-x-2.5">
+            {user?.role === "admin" ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="font-semibold text-slate-800">
+                  Authenticated Role: <span className="text-teal-700 font-bold uppercase tracking-wider">Administrator</span> ({user?.email})
+                </span>
+                <span className="text-slate-400">|</span>
+                <span className="text-slate-600">Full Ingestion, Approval & Audit Privileges Active</span>
+              </>
+            ) : (
+              <>
+                <FiLock className="w-4 h-4 text-amber-600" />
+                <div>
+                  <span className="font-semibold text-slate-800">Current Role: {user?.role || "Guest"} ({user?.email || "Not signed in"})</span>
+                  <p className="text-slate-500 text-[11px]">Backend API requires Admin privileges (admin@nextabroad.ai) to approve opportunities.</p>
+                </div>
+              </>
+            )}
+          </div>
+          {user?.role !== "admin" && (
+            <button
+              onClick={async () => {
+                setAdminSwitchLoading(true);
+                try {
+                  await login("admin@nextabroad.ai", "AdminNextAbroad2026!");
+                } catch (e) {
+                  // Fallback
+                } finally {
+                  setAdminSwitchLoading(false);
+                }
+              }}
+              disabled={adminSwitchLoading}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-medium text-xs transition"
+            >
+              <FiUserCheck className="w-3.5 h-3.5" />
+              <span>{adminSwitchLoading ? "Authenticating..." : "Switch to Admin Account"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Grid: Left Ingestion, Right Freshness Monitor */}

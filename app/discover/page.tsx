@@ -147,12 +147,21 @@ export default function DiscoverPage() {
               className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-teal-600 focus:outline-none"
             >
               <option value="All">All Countries</option>
+              <option value="United States">United States</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
               <option value="Germany">Germany</option>
               <option value="Sweden">Sweden</option>
+              <option value="Netherlands">Netherlands</option>
               <option value="Switzerland">Switzerland</option>
-              <option value="United Kingdom">United Kingdom</option>
+              <option value="Ireland">Ireland</option>
+              <option value="France">France</option>
+              <option value="Finland">Finland</option>
+              <option value="Italy">Italy</option>
+              <option value="Japan">Japan</option>
+              <option value="South Korea">South Korea</option>
               <option value="European Union">European Union (Joint)</option>
-              <option value="Canada">Canada</option>
             </select>
           </div>
 

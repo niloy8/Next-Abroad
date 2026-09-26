@@ -10,14 +10,119 @@ from app.models.user import User
 from app.utils.security import get_password_hash
 
 
+async def get_or_create_source(db: AsyncSession, url: str, title: str, tier: SourceTier, organization: str, domain: str, is_verified: bool = True, verification_notes: str = "") -> Source:
+    res = await db.execute(select(Source).where(Source.url == url))
+    src = res.scalar_one_or_none()
+    if not src:
+        src = Source(
+            url=url,
+            title=title,
+            tier=tier,
+            organization=organization,
+            domain=domain,
+            is_verified=is_verified,
+            verification_notes=verification_notes,
+        )
+        db.add(src)
+        await db.flush()
+    return src
+
+
+async def get_or_create_university(db: AsyncSession, name: str, country: str, city: str, global_rank: int, type_: str, website_url: str, admissions_url: str, living_cost_annual: float, currency: str, acceptance_rate: float, overview: str, source_id: int) -> University:
+    res = await db.execute(select(University).where(University.name == name))
+    uni = res.scalar_one_or_none()
+    if not uni:
+        uni = University(
+            name=name,
+            country=country,
+            city=city,
+            global_rank=global_rank,
+            type=type_,
+            website_url=website_url,
+            admissions_url=admissions_url,
+            living_cost_annual=living_cost_annual,
+            currency=currency,
+            acceptance_rate=acceptance_rate,
+            overview=overview,
+            source_id=source_id,
+        )
+        db.add(uni)
+        await db.flush()
+    return uni
+
+
+async def get_or_create_program(db: AsyncSession, university_id: int, name: str, degree_level: DegreeLevel, field_of_study: str, duration_months: int, tuition_annual: float, currency: str, language: str, min_cgpa: float, grading_scale: float, min_ielts: float, min_toefl: float, gre_required: bool, intake: str, application_deadline: str, status: OpportunityStatus, application_url: str, overview: str) -> Program:
+    res = await db.execute(select(Program).where(Program.university_id == university_id, Program.name == name))
+    prog = res.scalar_one_or_none()
+    if not prog:
+        prog = Program(
+            university_id=university_id,
+            name=name,
+            degree_level=degree_level,
+            field_of_study=field_of_study,
+            duration_months=duration_months,
+            tuition_annual=tuition_annual,
+            currency=currency,
+            language=language,
+            min_cgpa=min_cgpa,
+            grading_scale=grading_scale,
+            min_ielts=min_ielts,
+            min_toefl=min_toefl,
+            gre_required=gre_required,
+            intake=intake,
+            application_deadline=application_deadline,
+            status=status,
+            application_url=application_url,
+            overview=overview,
+        )
+        db.add(prog)
+        await db.flush()
+    return prog
+
+
+async def get_or_create_scholarship(db: AsyncSession, name: str, provider: str, country: str, university_id: int = None, degree_level: DegreeLevel = DegreeLevel.MASTERS, eligible_fields: list = None, funding_type: FundingType = FundingType.FULLY_FUNDED, tuition_coverage_pct: float = 100.0, monthly_stipend: float = 1000.0, stipend_currency: str = "USD", travel_support: bool = True, travel_allowance_amount: float = 1500.0, accommodation_support: bool = True, health_insurance: bool = True, min_cgpa: float = 3.0, grading_scale: float = 4.0, min_ielts: float = 6.5, min_toefl: float = 85.0, eligible_nationalities: list = None, work_experience_years_required: float = 0.0, required_documents: list = None, application_steps: list = None, application_open_date: str = "", application_deadline: str = "", status: OpportunityStatus = OpportunityStatus.OPEN, status_reason: str = "", official_application_url: str = "", source_id: int = None, overview: str = "") -> Scholarship:
+    res = await db.execute(select(Scholarship).where(Scholarship.name == name))
+    sch = res.scalar_one_or_none()
+    if not sch:
+        sch = Scholarship(
+            name=name,
+            provider=provider,
+            country=country,
+            university_id=university_id,
+            degree_level=degree_level,
+            eligible_fields=eligible_fields or ["All Fields"],
+            funding_type=funding_type,
+            tuition_coverage_pct=tuition_coverage_pct,
+            monthly_stipend=monthly_stipend,
+            stipend_currency=stipend_currency,
+            travel_support=travel_support,
+            travel_allowance_amount=travel_allowance_amount,
+            accommodation_support=accommodation_support,
+            health_insurance=health_insurance,
+            min_cgpa=min_cgpa,
+            grading_scale=grading_scale,
+            min_ielts=min_ielts,
+            min_toefl=min_toefl,
+            eligible_nationalities=eligible_nationalities or ["All International Candidates"],
+            work_experience_years_required=work_experience_years_required,
+            required_documents=required_documents or [],
+            application_steps=application_steps or [],
+            application_open_date=application_open_date,
+            application_deadline=application_deadline,
+            status=status,
+            status_reason=status_reason,
+            official_application_url=official_application_url,
+            source_id=source_id,
+            overview=overview,
+        )
+        db.add(sch)
+        await db.flush()
+    return sch
+
+
 async def seed_initial_data(db: AsyncSession):
     """Seed authentic, verified real-world universities, scholarships, and countries."""
-    # Check if data already exists
-    res = await db.execute(select(Country))
-    if res.scalars().first():
-        return  # Already seeded
-
-    # 1. Countries
+    # 1. Countries (Top Global Study Destinations)
     countries_data = [
         Country(
             code="DE",
@@ -35,34 +140,19 @@ async def seed_initial_data(db: AsyncSession):
             description="Tuition-free higher education at world-class public technical universities.",
         ),
         Country(
-            code="SE",
-            name="Sweden",
-            currency="SEK",
-            avg_tuition_min=90000.0,
-            avg_tuition_max=145000.0,
-            avg_living_annual_min=105000.0,
-            avg_living_annual_max=130000.0,
-            visa_work_rights="No strict hourly limit during term as long as academic progress is maintained",
-            post_study_work_visa="12-month post-study work search visa",
-            blocked_account_required=120000.0,
-            popular_fields=["Sustainable Engineering", "Computer Science", "Biotechnology", "Business Analytics"],
-            flag_code="se",
-            description="Pioneer in sustainability, innovation, and high-quality English-taught Master's degrees.",
-        ),
-        Country(
-            code="CH",
-            name="Switzerland",
-            currency="CHF",
-            avg_tuition_min=1400.0,
-            avg_tuition_max=2500.0,
-            avg_living_annual_min=20000.0,
-            avg_living_annual_max=26000.0,
-            visa_work_rights="15 hours per week during term (after 6 months of residency)",
-            post_study_work_visa="6-month post-study job seeker permit",
-            blocked_account_required=21000.0,
-            popular_fields=["Computer Science", "Robotics", "Quantum Engineering", "Finance", "Microtechnology"],
-            flag_code="ch",
-            description="World-leading research institutions with remarkably low public tuition fees and top global rankings.",
+            code="US",
+            name="United States",
+            currency="USD",
+            avg_tuition_min=25000.0,
+            avg_tuition_max=58000.0,
+            avg_living_annual_min=14000.0,
+            avg_living_annual_max=22000.0,
+            visa_work_rights="Up to 20 hours/week on-campus during academic terms; CPT/OPT authorized off-campus",
+            post_study_work_visa="12 months OPT + 24 months STEM extension (total up to 3 years)",
+            blocked_account_required=30000.0,
+            popular_fields=["Artificial Intelligence", "Computer Science", "Biomedical Engineering", "Finance", "Data Science"],
+            flag_code="us",
+            description="Home to the world's most prestigious research universities, cutting-edge technology ecosystems, and extensive STEM OPT.",
         ),
         Country(
             code="CA",
@@ -94,91 +184,455 @@ async def seed_initial_data(db: AsyncSession):
             flag_code="gb",
             description="Intensive 1-year Master's programs, historic universities, and strong global employer recognition.",
         ),
+        Country(
+            code="AU",
+            name="Australia",
+            currency="AUD",
+            avg_tuition_min=28000.0,
+            avg_tuition_max=48000.0,
+            avg_living_annual_min=24505.0,
+            avg_living_annual_max=30000.0,
+            visa_work_rights="Up to 48 hours per fortnight while studying; unlimited during semester breaks",
+            post_study_work_visa="2 to 4 years on Subclass 485 Temporary Graduate Visa depending on degree and regional study",
+            blocked_account_required=24505.0,
+            popular_fields=["Information Technology", "Mining Engineering", "Data Analytics", "Public Health", "Business"],
+            flag_code="au",
+            description="Top-ranked Group of Eight institutions, high standard of living, and flexible post-study work visas.",
+        ),
+        Country(
+            code="SE",
+            name="Sweden",
+            currency="SEK",
+            avg_tuition_min=90000.0,
+            avg_tuition_max=145000.0,
+            avg_living_annual_min=105000.0,
+            avg_living_annual_max=130000.0,
+            visa_work_rights="No strict hourly limit during term as long as academic progress is maintained",
+            post_study_work_visa="12-month post-study work search visa",
+            blocked_account_required=120000.0,
+            popular_fields=["Sustainable Engineering", "Computer Science", "Biotechnology", "Business Analytics"],
+            flag_code="se",
+            description="Pioneer in sustainability, innovation, and high-quality English-taught Master's degrees.",
+        ),
+        Country(
+            code="NL",
+            name="Netherlands",
+            currency="EUR",
+            avg_tuition_min=8000.0,
+            avg_tuition_max=20000.0,
+            avg_living_annual_min=11000.0,
+            avg_living_annual_max=15000.0,
+            visa_work_rights="16 hours per week during term, or full-time during June/July/August",
+            post_study_work_visa="1-year 'Zoekjaar' (Orientation Year) residence permit for graduates to seek work",
+            blocked_account_required=12500.0,
+            popular_fields=["Artificial Intelligence", "Water Management", "Logistics & Supply Chain", "Economics", "Industrial Design"],
+            flag_code="nl",
+            description="Europe's leader in English-taught degrees, progressive innovation hubs, and top-tier technical universities.",
+        ),
+        Country(
+            code="CH",
+            name="Switzerland",
+            currency="CHF",
+            avg_tuition_min=1400.0,
+            avg_tuition_max=2500.0,
+            avg_living_annual_min=20000.0,
+            avg_living_annual_max=26000.0,
+            visa_work_rights="15 hours per week during term (after 6 months of residency)",
+            post_study_work_visa="6-month post-study job seeker permit",
+            blocked_account_required=21000.0,
+            popular_fields=["Computer Science", "Robotics", "Quantum Engineering", "Finance", "Microtechnology"],
+            flag_code="ch",
+            description="World-leading research institutions with remarkably low public tuition fees and top global rankings.",
+        ),
+        Country(
+            code="IE",
+            name="Ireland",
+            currency="EUR",
+            avg_tuition_min=10000.0,
+            avg_tuition_max=25000.0,
+            avg_living_annual_min=10000.0,
+            avg_living_annual_max=14000.0,
+            visa_work_rights="20 hours per week during semester; 40 hours per week during scheduled holidays",
+            post_study_work_visa="2-year stay back option under the Third Level Graduate Scheme (Stamp 1G)",
+            blocked_account_required=10000.0,
+            popular_fields=["Software Engineering", "Cloud Computing", "Pharmaceutical Sciences", "Data Science", "Fintech"],
+            flag_code="ie",
+            description="The European headquarters hub for global tech giants, with 2-year graduate stay-back work rights.",
+        ),
+        Country(
+            code="FR",
+            name="France",
+            currency="EUR",
+            avg_tuition_min=2770.0,
+            avg_tuition_max=3770.0,
+            avg_living_annual_min=9000.0,
+            avg_living_annual_max=13000.0,
+            visa_work_rights="Up to 60% of annual working time (approx. 20 hours per week)",
+            post_study_work_visa="1-year APS / RECE (Autorisation Provisoire de Séjour) job search permit",
+            blocked_account_required=7380.0,
+            popular_fields=["Aerospace Engineering", "Mathematics", "Business Management", "Fashion & Luxury", "Data Analytics"],
+            flag_code="fr",
+            description="Heavily subsidized public university fees, rich cultural heritage, and premier Grandes Écoles.",
+        ),
+        Country(
+            code="FI",
+            name="Finland",
+            currency="EUR",
+            avg_tuition_min=8000.0,
+            avg_tuition_max=16000.0,
+            avg_living_annual_min=8500.0,
+            avg_living_annual_max=11500.0,
+            visa_work_rights="Up to 30 hours per week during term",
+            post_study_work_visa="Up to 2-year job seeker permit after graduation",
+            blocked_account_required=6720.0,
+            popular_fields=["Clean Technology", "Telecommunications", "Software Development", "Game Design", "Environmental Sciences"],
+            flag_code="fi",
+            description="Ranked the world's happiest country, with world-class education, technology leadership, and student-friendly policies.",
+        ),
+        Country(
+            code="IT",
+            name="Italy",
+            currency="EUR",
+            avg_tuition_min=1000.0,
+            avg_tuition_max=4000.0,
+            avg_living_annual_min=8000.0,
+            avg_living_annual_max=11000.0,
+            visa_work_rights="20 hours per week (max 1,040 hours per year)",
+            post_study_work_visa="12-month 'Permesso di Soggiorno per Ricerca Lavoro' permit",
+            blocked_account_required=6000.0,
+            popular_fields=["Architecture", "Automotive Design", "Mechanical Engineering", "Biomedical Sciences", "Art & Fashion"],
+            flag_code="it",
+            description="Affordable public tuition with income-based fee reductions (ISEE) and generous regional DSU scholarship stipends.",
+        ),
+        Country(
+            code="JP",
+            name="Japan",
+            currency="JPY",
+            avg_tuition_min=535800.0,
+            avg_tuition_max=1200000.0,
+            avg_living_annual_min=1200000.0,
+            avg_living_annual_max=1800000.0,
+            visa_work_rights="Up to 28 hours per week with permission for part-time work (Shikakugai Katsudo)",
+            post_study_work_visa="Designated Activities visa for job hunting up to 1 year",
+            blocked_account_required=2000000.0,
+            popular_fields=["Robotics", "Material Science", "Electronics", "Automotive Engineering", "Biotechnology"],
+            flag_code="jp",
+            description="Asia's innovation and robotics powerhouse, with renowned MEXT scholarships and expanding English-taught degrees.",
+        ),
+        Country(
+            code="KR",
+            name="South Korea",
+            currency="KRW",
+            avg_tuition_min=4500000.0,
+            avg_tuition_max=10000000.0,
+            avg_living_annual_min=9000000.0,
+            avg_living_annual_max=13000000.0,
+            visa_work_rights="20-25 hours per week during semester; full-time during holidays",
+            post_study_work_visa="D-10 Job Seeker visa up to 2 years for graduates",
+            blocked_account_required=10000000.0,
+            popular_fields=["Semiconductors", "Computer Engineering", "Digital Media", "International Business", "Biomedical"],
+            flag_code="kr",
+            description="Dynamic technological hub with Global Korea Scholarships (GKS), cutting-edge semiconductor research, and strong industry links.",
+        ),
     ]
+
     for c in countries_data:
-        db.add(c)
+        existing = await db.execute(select(Country).where(Country.code == c.code))
+        if not existing.scalar_one_or_none():
+            db.add(c)
     await db.flush()
 
     # 2. Tier-1 Verified Sources
-    sources_data = [
-        Source(
-            url="https://www.daad.de/en/study-and-research-in-germany/scholarships/daad-scholarships/helmut-schmidt/",
-            title="DAAD Official Portal - Helmut-Schmidt-Programme",
-            tier=SourceTier.TIER_1,
-            organization="German Academic Exchange Service (DAAD)",
-            domain="daad.de",
-            is_verified=True,
-            verification_notes="Verified against official DAAD Bonn funding database.",
-        ),
-        Source(
-            url="https://erasmus-plus.ec.europa.eu/opportunities/opportunities-for-individuals/students/erasmus-mundus-joint-masters",
-            title="European Commission Erasmus+ Joint Masters Catalogue",
-            tier=SourceTier.TIER_1,
-            organization="European Commission Directorate-General for Education",
-            domain="ec.europa.eu",
-            is_verified=True,
-            verification_notes="Official EU executive agency portal.",
-        ),
-        Source(
-            url="https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals/",
-            title="Swedish Institute Scholarships for Global Professionals",
-            tier=SourceTier.TIER_1,
-            organization="Swedish Institute (Government of Sweden)",
-            domain="si.se",
-            is_verified=True,
-            verification_notes="Verified via Swedish Ministry for Foreign Affairs agency portal.",
-        ),
-        Source(
-            url="https://ethz.ch/students/en/studies/financial/scholarships/excellencescholarship.html",
-            title="ETH Zurich Financial Aid & Excellence Scholarship (ESOP)",
-            tier=SourceTier.TIER_1,
-            organization="ETH Zurich Rectorate",
-            domain="ethz.ch",
-            is_verified=True,
-            verification_notes="Official ETH Zurich graduate funding portal.",
-        ),
-        Source(
-            url="https://www.tum.de/en/studies/degree-programs/detail/informatics-master-of-science-msc",
-            title="Technical University of Munich (TUM) MSc Informatics Admissions",
-            tier=SourceTier.TIER_1,
-            organization="Technical University of Munich",
-            domain="tum.de",
-            is_verified=True,
-            verification_notes="Official TUM degree catalog.",
-        ),
-        Source(
-            url="https://www.chevening.org/scholarships/",
-            title="Chevening Scholarships Official UK Portal",
-            tier=SourceTier.TIER_1,
-            organization="UK Foreign, Commonwealth and Development Office",
-            domain="chevening.org",
-            is_verified=True,
-            verification_notes="Official UK government global scholarship scheme.",
-        ),
-    ]
-    for s in sources_data:
-        db.add(s)
-    await db.flush()
+    src_daad = await get_or_create_source(
+        db,
+        url="https://www.daad.de/en/study-and-research-in-germany/scholarships/daad-scholarships/helmut-schmidt/",
+        title="DAAD Official Portal - Helmut-Schmidt-Programme",
+        tier=SourceTier.TIER_1,
+        organization="German Academic Exchange Service (DAAD)",
+        domain="daad.de",
+        is_verified=True,
+        verification_notes="Verified against official DAAD Bonn funding database.",
+    )
+    src_erasmus = await get_or_create_source(
+        db,
+        url="https://erasmus-plus.ec.europa.eu/opportunities/opportunities-for-individuals/students/erasmus-mundus-joint-masters",
+        title="European Commission Erasmus+ Joint Masters Catalogue",
+        tier=SourceTier.TIER_1,
+        organization="European Commission Directorate-General for Education",
+        domain="ec.europa.eu",
+        is_verified=True,
+        verification_notes="Official EU executive agency portal.",
+    )
+    src_si = await get_or_create_source(
+        db,
+        url="https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals/",
+        title="Swedish Institute Scholarships for Global Professionals",
+        tier=SourceTier.TIER_1,
+        organization="Swedish Institute (Government of Sweden)",
+        domain="si.se",
+        is_verified=True,
+        verification_notes="Verified via Swedish Ministry for Foreign Affairs agency portal.",
+    )
+    src_eth = await get_or_create_source(
+        db,
+        url="https://ethz.ch/students/en/studies/financial/scholarships/excellencescholarship.html",
+        title="ETH Zurich Financial Aid & Excellence Scholarship (ESOP)",
+        tier=SourceTier.TIER_1,
+        organization="ETH Zurich Rectorate",
+        domain="ethz.ch",
+        is_verified=True,
+        verification_notes="Official ETH Zurich graduate funding portal.",
+    )
+    src_tum = await get_or_create_source(
+        db,
+        url="https://www.tum.de/en/studies/degree-programs/detail/informatics-master-of-science-msc",
+        title="Technical University of Munich (TUM) MSc Informatics Admissions",
+        tier=SourceTier.TIER_1,
+        organization="Technical University of Munich",
+        domain="tum.de",
+        is_verified=True,
+        verification_notes="Official TUM degree catalog.",
+    )
+    src_chevening = await get_or_create_source(
+        db,
+        url="https://www.chevening.org/scholarships/",
+        title="Chevening Scholarships Official UK Portal",
+        tier=SourceTier.TIER_1,
+        organization="UK Foreign, Commonwealth and Development Office",
+        domain="chevening.org",
+        is_verified=True,
+        verification_notes="Official UK government global scholarship scheme.",
+    )
+    src_fulbright = await get_or_create_source(
+        db,
+        url="https://foreign.fulbrightonline.org/about/foreign-student-program",
+        title="Fulbright Foreign Student Program",
+        tier=SourceTier.TIER_1,
+        organization="U.S. Department of State Bureau of Educational and Cultural Affairs",
+        domain="fulbrightonline.org",
+        is_verified=True,
+        verification_notes="Official flagship international exchange program sponsored by the U.S. government.",
+    )
+    src_vanier = await get_or_create_source(
+        db,
+        url="https://vanier.gc.ca/en/home-accueil.html",
+        title="Vanier Canada Graduate Scholarships",
+        tier=SourceTier.TIER_1,
+        organization="Government of Canada (CIHR, NSERC, SSHRC)",
+        domain="vanier.gc.ca",
+        is_verified=True,
+        verification_notes="Canada's premier doctoral & master's research leadership award.",
+    )
+    src_ausawards = await get_or_create_source(
+        db,
+        url="https://www.dfat.gov.au/people-to-people/australia-awards/australia-awards-scholarships",
+        title="Australia Awards Scholarships",
+        tier=SourceTier.TIER_1,
+        organization="Australian Department of Foreign Affairs and Trade (DFAT)",
+        domain="dfat.gov.au",
+        is_verified=True,
+        verification_notes="Prestigious Australian Government scholarships for Indo-Pacific and partner nations.",
+    )
+    src_eiffel = await get_or_create_source(
+        db,
+        url="https://www.campusfrance.org/en/the-eiffel-scholarship-program-of-excellence",
+        title="Campus France Eiffel Excellence Scholarship Program",
+        tier=SourceTier.TIER_1,
+        organization="French Ministry for Europe and Foreign Affairs",
+        domain="campusfrance.org",
+        is_verified=True,
+        verification_notes="French Government flagship award for master's and doctoral international scholars.",
+    )
+    src_nlschol = await get_or_create_source(
+        db,
+        url="https://www.nuffic.nl/en/subjects/nl-scholarship",
+        title="NL Scholarship (Holland Scholarship)",
+        tier=SourceTier.TIER_1,
+        organization="Dutch Ministry of Education, Culture and Science & Nuffic",
+        domain="nuffic.nl",
+        is_verified=True,
+        verification_notes="Official Dutch national funding initiative for non-EEA students.",
+    )
+    src_goiies = await get_or_create_source(
+        db,
+        url="https://hea.ie/funding-governance-performance/funding/student-finance/government-of-ireland-international-education-scholarships/",
+        title="Government of Ireland International Education Scholarship (GOI-IES)",
+        tier=SourceTier.TIER_1,
+        organization="Higher Education Authority (HEA) Ireland",
+        domain="hea.ie",
+        is_verified=True,
+        verification_notes="Government of Ireland official premier scholarship program.",
+    )
+    src_finland = await get_or_create_source(
+        db,
+        url="https://www.studyinfinland.fi/scholarships/finland-scholarships",
+        title="Finland Scholarship Program",
+        tier=SourceTier.TIER_1,
+        organization="Finnish National Agency for Education (EDUFI)",
+        domain="studyinfinland.fi",
+        is_verified=True,
+        verification_notes="Official national scholarship system funded by the Ministry of Education and Culture.",
+    )
+    src_italy = await get_or_create_source(
+        db,
+        url="https://studyinitaly.esteri.it/en/call-for-procedure",
+        title="Italian Government (MAECI) Study Grants for Foreign Citizens",
+        tier=SourceTier.TIER_1,
+        organization="Italian Ministry of Foreign Affairs and International Cooperation",
+        domain="esteri.it",
+        is_verified=True,
+        verification_notes="Official national grant scheme for international students in Italy.",
+    )
+    src_mext = await get_or_create_source(
+        db,
+        url="https://www.mext.go.jp/a_menu/koutou/ryugaku/06452.htm",
+        title="Japanese Government (MEXT) Scholarship",
+        tier=SourceTier.TIER_1,
+        organization="Ministry of Education, Culture, Sports, Science and Technology (MEXT)",
+        domain="mext.go.jp",
+        is_verified=True,
+        verification_notes="Official Japanese national government fully funded scholarship program.",
+    )
+    src_gks = await get_or_create_source(
+        db,
+        url="https://www.studyinkorea.go.kr/en/scholarship/gks_about.do",
+        title="Global Korea Scholarship (GKS)",
+        tier=SourceTier.TIER_1,
+        organization="National Institute for International Education (NIIED), Ministry of Education",
+        domain="studyinkorea.go.kr",
+        is_verified=True,
+        verification_notes="Official South Korean government fully funded scholarship for graduate scholars.",
+    )
+    src_berkeley = await get_or_create_source(
+        db,
+        url="https://eecs.berkeley.edu/academics/graduate/degrees/meng",
+        title="UC Berkeley EECS Graduate Admissions",
+        tier=SourceTier.TIER_1,
+        organization="University of California, Berkeley",
+        domain="berkeley.edu",
+        is_verified=True,
+        verification_notes="Official UC Berkeley EECS degree catalog.",
+    )
+    src_oxford = await get_or_create_source(
+        db,
+        url="https://www.cs.ox.ac.uk/admissions/graduate/msc-computer-science/",
+        title="University of Oxford Department of Computer Science",
+        tier=SourceTier.TIER_1,
+        organization="University of Oxford",
+        domain="ox.ac.uk",
+        is_verified=True,
+        verification_notes="Official Oxford graduate admissions portal.",
+    )
+    src_utoronto = await get_or_create_source(
+        db,
+        url="https://web.cs.toronto.edu/graduate/mscac",
+        title="University of Toronto Department of Computer Science (MScAC)",
+        tier=SourceTier.TIER_1,
+        organization="University of Toronto",
+        domain="utoronto.ca",
+        is_verified=True,
+        verification_notes="Official University of Toronto Applied Computing admissions.",
+    )
+    src_unimelb = await get_or_create_source(
+        db,
+        url="https://study.unimelb.edu.au/find/courses/graduate/master-of-information-technology/",
+        title="University of Melbourne Master of Information Technology",
+        tier=SourceTier.TIER_1,
+        organization="The University of Melbourne",
+        domain="unimelb.edu.au",
+        is_verified=True,
+        verification_notes="Official Melbourne graduate study catalog.",
+    )
+    src_sorbonne = await get_or_create_source(
+        db,
+        url="https://sciences.sorbonne-universite.fr/en/master-computer-science",
+        title="Sorbonne Université Faculty of Science and Engineering",
+        tier=SourceTier.TIER_1,
+        organization="Sorbonne Université",
+        domain="sorbonne-universite.fr",
+        is_verified=True,
+        verification_notes="Official Sorbonne international graduate degree portal.",
+    )
+    src_tudelft = await get_or_create_source(
+        db,
+        url="https://www.tudelft.nl/onderwijs/opleidingen/masters/cs/msc-computer-science",
+        title="TU Delft Faculty of Electrical Engineering, Mathematics and Computer Science",
+        tier=SourceTier.TIER_1,
+        organization="Delft University of Technology",
+        domain="tudelft.nl",
+        is_verified=True,
+        verification_notes="Official TU Delft graduate programs portal.",
+    )
+    src_tcd = await get_or_create_source(
+        db,
+        url="https://www.tcd.ie/courses/postgraduate/courses/computer-science--data-science-msc/",
+        title="Trinity College Dublin School of Computer Science and Statistics",
+        tier=SourceTier.TIER_1,
+        organization="Trinity College Dublin",
+        domain="tcd.ie",
+        is_verified=True,
+        verification_notes="Official Trinity College Dublin postgraduate portal.",
+    )
+    src_aalto = await get_or_create_source(
+        db,
+        url="https://www.aalto.fi/en/study-options/masters-programme-in-computer-communication-and-information-sciences",
+        title="Aalto University School of Science",
+        tier=SourceTier.TIER_1,
+        organization="Aalto University",
+        domain="aalto.fi",
+        is_verified=True,
+        verification_notes="Official Aalto University international master's degree catalog.",
+    )
+    src_polimi = await get_or_create_source(
+        db,
+        url="https://www.polimi.it/en/international-prospective-students/laurea-magistrale-programmes-equivalent-to-master-of-science/programme-details/computer-science-and-engineering",
+        title="Politecnico di Milano School of Industrial and Information Engineering",
+        tier=SourceTier.TIER_1,
+        organization="Politecnico di Milano",
+        domain="polimi.it",
+        is_verified=True,
+        verification_notes="Official Politecnico di Milano graduate studies catalog.",
+    )
+    src_utokyo = await get_or_create_source(
+        db,
+        url="https://www.i.u-tokyo.ac.jp/edu/course/cs/index_e.shtml",
+        title="The University of Tokyo Graduate School of Information Science and Technology",
+        tier=SourceTier.TIER_1,
+        organization="The University of Tokyo",
+        domain="u-tokyo.ac.jp",
+        is_verified=True,
+        verification_notes="Official University of Tokyo Graduate School of IST catalog.",
+    )
+    src_snu = await get_or_create_source(
+        db,
+        url="https://cse.snu.ac.kr/en/admissions/graduate",
+        title="Seoul National University Department of Computer Science and Engineering",
+        tier=SourceTier.TIER_1,
+        organization="Seoul National University",
+        domain="snu.ac.kr",
+        is_verified=True,
+        verification_notes="Official SNU CSE graduate admissions page.",
+    )
 
-    # 3. Universities & Programs
-    tum = University(
+    # 3. Universities & Programs across all target countries
+    # Germany: TUM
+    tum = await get_or_create_university(
+        db,
         name="Technical University of Munich (TUM)",
         country="Germany",
         city="Munich",
         global_rank=28,
-        type="Public",
+        type_="Public",
         website_url="https://www.tum.de/en/",
         admissions_url="https://www.tum.de/en/studies/application",
         living_cost_annual=11500.0,
         currency="EUR",
         acceptance_rate=0.18,
         overview="Technical University of Munich is one of Europe's leading technical universities, committed to excellence in research and teaching, interdisciplinary education, and the active promotion of young scientists.",
-        source_id=sources_data[4].id,
+        source_id=src_tum.id,
     )
-    db.add(tum)
-    await db.flush()
-
-    tum_p1 = Program(
+    await get_or_create_program(
+        db,
         university_id=tum.id,
         name="M.Sc. in Informatics (Computer Science)",
         degree_level=DegreeLevel.MASTERS,
@@ -198,7 +652,8 @@ async def seed_initial_data(db: AsyncSession):
         application_url="https://campus.tum.de/",
         overview="Covers software engineering, algorithms, scientific computing, and artificial intelligence with flexible specializations.",
     )
-    tum_p2 = Program(
+    await get_or_create_program(
+        db,
         university_id=tum.id,
         name="M.Sc. in Data Engineering and Analytics",
         degree_level=DegreeLevel.MASTERS,
@@ -218,27 +673,25 @@ async def seed_initial_data(db: AsyncSession):
         application_url="https://campus.tum.de/",
         overview="Interdisciplinary program between mathematics and informatics focusing on scalable data systems, big data analytics, and machine learning.",
     )
-    db.add(tum_p1)
-    db.add(tum_p2)
 
-    eth = University(
+    # Switzerland: ETH Zurich
+    eth = await get_or_create_university(
+        db,
         name="ETH Zurich",
         country="Switzerland",
         city="Zurich",
         global_rank=7,
-        type="Public",
+        type_="Public",
         website_url="https://ethz.ch/en.html",
         admissions_url="https://ethz.ch/en/studies/master/application.html",
         living_cost_annual=22000.0,
         currency="CHF",
         acceptance_rate=0.22,
         overview="Consistently ranked among the top 10 universities in the world. Renowned for cutting-edge engineering, science, and computer science breakthroughs.",
-        source_id=sources_data[3].id,
+        source_id=src_eth.id,
     )
-    db.add(eth)
-    await db.flush()
-
-    eth_p1 = Program(
+    await get_or_create_program(
+        db,
         university_id=eth.id,
         name="Master of Science in Computer Science",
         degree_level=DegreeLevel.MASTERS,
@@ -258,26 +711,25 @@ async def seed_initial_data(db: AsyncSession):
         application_url="https://ethz.ch/en/studies/master/application.html",
         overview="Provides deep theoretical foundations combined with practical research in distributed systems, machine intelligence, cyber security, and visual computing.",
     )
-    db.add(eth_p1)
 
-    uu = University(
+    # Sweden: Uppsala University
+    uu = await get_or_create_university(
+        db,
         name="Uppsala University",
         country="Sweden",
         city="Uppsala",
         global_rank=105,
-        type="Public",
+        type_="Public",
         website_url="https://www.uu.se/en",
         admissions_url="https://www.universityadmissions.se",
         living_cost_annual=115000.0,
         currency="SEK",
         acceptance_rate=0.35,
         overview="Founded in 1477, Uppsala is the oldest university in Sweden and the Nordic countries, recognized for pioneering international research and dynamic student life.",
-        source_id=sources_data[2].id,
+        source_id=src_si.id,
     )
-    db.add(uu)
-    await db.flush()
-
-    uu_p1 = Program(
+    await get_or_create_program(
+        db,
         university_id=uu.id,
         name="Master's Programme in Computer Science",
         degree_level=DegreeLevel.MASTERS,
@@ -297,10 +749,429 @@ async def seed_initial_data(db: AsyncSession):
         application_url="https://www.universityadmissions.se",
         overview="Specialized tracks in computer architecture, data science, human-computer interaction, and software engineering.",
     )
-    db.add(uu_p1)
 
-    # 4. Scholarships
-    sch1 = Scholarship(
+    # United States: UC Berkeley
+    berkeley = await get_or_create_university(
+        db,
+        name="University of California, Berkeley",
+        country="United States",
+        city="Berkeley, CA",
+        global_rank=10,
+        type_="Public",
+        website_url="https://www.berkeley.edu",
+        admissions_url="https://grad.berkeley.edu/admissions/",
+        living_cost_annual=22000.0,
+        currency="USD",
+        acceptance_rate=0.11,
+        overview="UC Berkeley is widely considered the top public research university in the world, with Silicon Valley integration and Nobel Prize-winning faculty.",
+        source_id=src_berkeley.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=berkeley.id,
+        name="Master of Engineering (M.Eng) in EECS",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=12,
+        tuition_annual=56000.0,
+        currency="USD",
+        language="English",
+        min_cgpa=3.5,
+        grading_scale=4.0,
+        min_ielts=7.0,
+        min_toefl=90.0,
+        gre_required=False,
+        intake="Fall 2026",
+        application_deadline="2026-01-06",
+        status=OpportunityStatus.UPCOMING,
+        application_url="https://eecs.berkeley.edu/academics/graduate/degrees/meng",
+        overview="An intensive accelerated professional degree combining advanced technical coursework with technology leadership and capstone industry ventures.",
+    )
+
+    # United Kingdom: University of Oxford
+    oxford = await get_or_create_university(
+        db,
+        name="University of Oxford",
+        country="United Kingdom",
+        city="Oxford",
+        global_rank=1,
+        type_="Public",
+        website_url="https://www.ox.ac.uk",
+        admissions_url="https://www.ox.ac.uk/admissions/graduate",
+        living_cost_annual=15000.0,
+        currency="GBP",
+        acceptance_rate=0.14,
+        overview="The oldest university in the English-speaking world, Oxford is a world leader in scientific and computational research.",
+        source_id=src_oxford.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=oxford.id,
+        name="MSc in Advanced Computer Science",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=12,
+        tuition_annual=36500.0,
+        currency="GBP",
+        language="English",
+        min_cgpa=3.7,
+        grading_scale=4.0,
+        min_ielts=7.5,
+        min_toefl=100.0,
+        gre_required=False,
+        intake="Michaelmas 2026",
+        application_deadline="2026-03-01",
+        status=OpportunityStatus.OPEN,
+        application_url="https://www.cs.ox.ac.uk/admissions/graduate/msc-computer-science/",
+        overview="Combines deep theory with advanced practice in quantum computing, machine learning, verification, and computational biology.",
+    )
+
+    # Canada: University of Toronto
+    uoft = await get_or_create_university(
+        db,
+        name="University of Toronto",
+        country="Canada",
+        city="Toronto",
+        global_rank=21,
+        type_="Public",
+        website_url="https://www.utoronto.ca",
+        admissions_url="https://www.sgs.utoronto.ca/admissions/",
+        living_cost_annual=21000.0,
+        currency="CAD",
+        acceptance_rate=0.20,
+        overview="Canada's premier research powerhouse, birthplace of deep learning breakthroughs, and leading artificial intelligence center.",
+        source_id=src_utoronto.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=uoft.id,
+        name="Master of Science in Applied Computing (MScAC)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Artificial Intelligence",
+        duration_months=16,
+        tuition_annual=38000.0,
+        currency="CAD",
+        language="English",
+        min_cgpa=3.4,
+        grading_scale=4.0,
+        min_ielts=7.0,
+        min_toefl=93.0,
+        gre_required=False,
+        intake="Fall 2026",
+        application_deadline="2026-01-15",
+        status=OpportunityStatus.UPCOMING,
+        application_url="https://web.cs.toronto.edu/graduate/mscac",
+        overview="Integrates 8 months of advanced coursework with an 8-month paid industrial research internship at leading tech enterprises.",
+    )
+
+    # Australia: The University of Melbourne
+    unimelb = await get_or_create_university(
+        db,
+        name="The University of Melbourne",
+        country="Australia",
+        city="Melbourne",
+        global_rank=14,
+        type_="Public",
+        website_url="https://www.unimelb.edu.au",
+        admissions_url="https://study.unimelb.edu.au/how-to-apply",
+        living_cost_annual=26000.0,
+        currency="AUD",
+        acceptance_rate=0.25,
+        overview="Australia's number one ranked university and member of the prestigious Group of Eight research institutions.",
+        source_id=src_unimelb.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=unimelb.id,
+        name="Master of Information Technology (Computing)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=48000.0,
+        currency="AUD",
+        language="English",
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=79.0,
+        gre_required=False,
+        intake="Semester 2 (July 2026)",
+        application_deadline="2026-04-30",
+        status=OpportunityStatus.OPEN,
+        application_url="https://study.unimelb.edu.au/find/courses/graduate/master-of-information-technology/",
+        overview="Accredited by the Australian Computer Society with specializations in artificial intelligence, cybersecurity, and distributed systems.",
+    )
+
+    # France: Sorbonne University
+    sorbonne = await get_or_create_university(
+        db,
+        name="Sorbonne Université",
+        country="France",
+        city="Paris",
+        global_rank=46,
+        type_="Public",
+        website_url="https://www.sorbonne-universite.fr/en",
+        admissions_url="https://sciences.sorbonne-universite.fr/en/admissions-sciences",
+        living_cost_annual=11000.0,
+        currency="EUR",
+        acceptance_rate=0.22,
+        overview="World-renowned Paris university delivering subsidized, high-caliber science and informatics graduate degrees in the heart of Europe.",
+        source_id=src_sorbonne.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=sorbonne.id,
+        name="Master in Computer Science (Distributed Systems & AI)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=3770.0,
+        currency="EUR",
+        language="English",
+        min_cgpa=3.1,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=85.0,
+        gre_required=False,
+        intake="Fall 2026",
+        application_deadline="2026-05-15",
+        status=OpportunityStatus.OPEN,
+        application_url="https://sciences.sorbonne-universite.fr/en/master-computer-science",
+        overview="Taught entirely in English, featuring advanced modules in algorithms, distributed systems, quantum information, and machine learning.",
+    )
+
+    # Netherlands: TU Delft
+    tudelft = await get_or_create_university(
+        db,
+        name="Delft University of Technology (TU Delft)",
+        country="Netherlands",
+        city="Delft",
+        global_rank=47,
+        type_="Public",
+        website_url="https://www.tudelft.nl/en/",
+        admissions_url="https://www.tudelft.nl/en/education/admission-and-application",
+        living_cost_annual=13000.0,
+        currency="EUR",
+        acceptance_rate=0.28,
+        overview="The largest and oldest Dutch public technical university, globally renowned for engineering, computer science, and innovation.",
+        source_id=src_tudelft.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=tudelft.id,
+        name="MSc in Computer Science (Data Science & Technology)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=20500.0,
+        currency="EUR",
+        language="English",
+        min_cgpa=3.3,
+        grading_scale=4.0,
+        min_ielts=7.0,
+        min_toefl=90.0,
+        gre_required=True,
+        intake="September 2026",
+        application_deadline="2026-04-01",
+        status=OpportunityStatus.OPEN,
+        application_url="https://www.tudelft.nl/onderwijs/opleidingen/masters/cs/msc-computer-science",
+        overview="Focuses on big data engineering, web-scale architectures, machine learning algorithms, and cybersecurity paradigms.",
+    )
+
+    # Ireland: Trinity College Dublin
+    tcd = await get_or_create_university(
+        db,
+        name="Trinity College Dublin",
+        country="Ireland",
+        city="Dublin",
+        global_rank=81,
+        type_="Public",
+        website_url="https://www.tcd.ie",
+        admissions_url="https://www.tcd.ie/study/apply/",
+        living_cost_annual=13500.0,
+        currency="EUR",
+        acceptance_rate=0.32,
+        overview="Ireland's leading university situated at the heart of Dublin's European Silicon Docks with direct pipelines into multinational tech enterprises.",
+        source_id=src_tcd.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=tcd.id,
+        name="MSc in Computer Science (Data Science)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Data Science",
+        duration_months=12,
+        tuition_annual=25800.0,
+        currency="EUR",
+        language="English",
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=88.0,
+        gre_required=False,
+        intake="September 2026",
+        application_deadline="2026-06-30",
+        status=OpportunityStatus.OPEN,
+        application_url="https://www.tcd.ie/courses/postgraduate/courses/computer-science--data-science-msc/",
+        overview="1-year intensive postgraduate program preparing engineers for advanced roles in data mining, optimization, machine learning, and cloud infrastructure.",
+    )
+
+    # Finland: Aalto University
+    aalto = await get_or_create_university(
+        db,
+        name="Aalto University",
+        country="Finland",
+        city="Espoo / Helsinki",
+        global_rank=109,
+        type_="Public",
+        website_url="https://www.aalto.fi/en",
+        admissions_url="https://www.aalto.fi/en/admissions",
+        living_cost_annual=10000.0,
+        currency="EUR",
+        acceptance_rate=0.26,
+        overview="Finland's flagship multidisciplinary institution renowned for world-class computer science, Nordic work-life balance, and clean technology.",
+        source_id=src_aalto.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=aalto.id,
+        name="Master's in Computer, Communication and Information Sciences",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=15000.0,
+        currency="EUR",
+        language="English",
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=92.0,
+        gre_required=False,
+        intake="Autumn 2026",
+        application_deadline="2026-01-02",
+        status=OpportunityStatus.EXPIRED,
+        application_url="https://www.aalto.fi/en/study-options/masters-programme-in-computer-communication-and-information-sciences",
+        overview="Tracks in Computer Science, Machine Learning, Data Science, and Security and Cloud Computing.",
+    )
+
+    # Italy: Politecnico di Milano
+    polimi = await get_or_create_university(
+        db,
+        name="Politecnico di Milano",
+        country="Italy",
+        city="Milan",
+        global_rank=123,
+        type_="Public",
+        website_url="https://www.polimi.it/en",
+        admissions_url="https://www.polimi.it/en/international-prospective-students",
+        living_cost_annual=9500.0,
+        currency="EUR",
+        acceptance_rate=0.29,
+        overview="The largest technical university in Italy and top-ranking engineering school in Southern Europe with highly subsidized public fees.",
+        source_id=src_polimi.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=polimi.id,
+        name="Laurea Magistrale in Computer Science and Engineering",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=3900.0,
+        currency="EUR",
+        language="English",
+        min_cgpa=3.0,
+        grading_scale=4.0,
+        min_ielts=6.0,
+        min_toefl=78.0,
+        gre_required=False,
+        intake="First Semester 2026/27",
+        application_deadline="2026-03-05",
+        status=OpportunityStatus.OPEN,
+        application_url="https://www.polimi.it/en/international-prospective-students/laurea-magistrale-programmes-equivalent-to-master-of-science/programme-details/computer-science-and-engineering",
+        overview="Comprehensive Italian engineering master's program taught in English covering autonomous systems, cybersecurity, data science, and software engineering.",
+    )
+
+    # Japan: The University of Tokyo
+    utokyo = await get_or_create_university(
+        db,
+        name="The University of Tokyo",
+        country="Japan",
+        city="Tokyo",
+        global_rank=28,
+        type_="Public",
+        website_url="https://www.u-tokyo.ac.jp/en/",
+        admissions_url="https://www.u-tokyo.ac.jp/en/prospective-students/graduate_course.html",
+        living_cost_annual=1500000.0,
+        currency="JPY",
+        acceptance_rate=0.15,
+        overview="Japan's pre-eminent national research university, renowned across Asia for robotics, computing, and high-tech engineering breakthroughs.",
+        source_id=src_utokyo.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=utokyo.id,
+        name="Master of Information Science and Technology (CS Track)",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=535800.0,
+        currency="JPY",
+        language="English",
+        min_cgpa=3.3,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=85.0,
+        gre_required=False,
+        intake="Autumn (October) 2026",
+        application_deadline="2026-05-20",
+        status=OpportunityStatus.OPEN,
+        application_url="https://www.i.u-tokyo.ac.jp/edu/course/cs/index_e.shtml",
+        overview="Offered under the English Program on Graduate Information Science and Technology (IST), focusing on algorithms, AI, and systems architecture.",
+    )
+
+    # South Korea: Seoul National University (SNU)
+    snu = await get_or_create_university(
+        db,
+        name="Seoul National University (SNU)",
+        country="South Korea",
+        city="Seoul",
+        global_rank=41,
+        type_="Public",
+        website_url="https://en.snu.ac.kr",
+        admissions_url="https://en.snu.ac.kr/admission/graduate/application",
+        living_cost_annual=11000000.0,
+        currency="KRW",
+        acceptance_rate=0.16,
+        overview="Korea's most prestigious national university, leading groundbreaking research in artificial intelligence, semiconductors, and software.",
+        source_id=src_snu.id,
+    )
+    await get_or_create_program(
+        db,
+        university_id=snu.id,
+        name="Master of Science in Computer Science and Engineering",
+        degree_level=DegreeLevel.MASTERS,
+        field_of_study="Computer Science",
+        duration_months=24,
+        tuition_annual=6200000.0,
+        currency="KRW",
+        language="English",
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=80.0,
+        gre_required=False,
+        intake="Fall 2026",
+        application_deadline="2026-03-12",
+        status=OpportunityStatus.OPEN,
+        application_url="https://cse.snu.ac.kr/en/admissions/graduate",
+        overview="Taught with English course options, providing world-class lab research in deep learning, mobile systems, graphics, and computer networks.",
+    )
+
+    # 4. Verified Government & University Scholarships across destinations
+    # Germany: DAAD Helmut Schmidt
+    await get_or_create_scholarship(
+        db,
         name="DAAD Helmut-Schmidt-Programme (Master's in Public Policy and Governance)",
         provider="German Academic Exchange Service (DAAD)",
         country="Germany",
@@ -340,12 +1211,13 @@ async def seed_initial_data(db: AsyncSession):
         status=OpportunityStatus.UPCOMING,
         status_reason="Verified upcoming application window for 2027 intake.",
         official_application_url="https://www.daad.de/en/study-and-research-in-germany/scholarships/daad-scholarships/helmut-schmidt/",
-        source_id=sources_data[0].id,
+        source_id=src_daad.id,
         overview="The DAAD Helmut-Schmidt-Programme offers future leaders from developing countries the chance to acquire a Master's degree in subjects with special relevance to the social, political, and economic development of their home countries.",
     )
-    db.add(sch1)
 
-    sch2 = Scholarship(
+    # European Union: Erasmus Mundus Joint Masters
+    await get_or_create_scholarship(
+        db,
         name="Erasmus Mundus Joint Master Degrees (EMJM) Scholarship",
         provider="European Commission",
         country="European Union",
@@ -384,12 +1256,13 @@ async def seed_initial_data(db: AsyncSession):
         status=OpportunityStatus.EXPIRED,
         status_reason="Verified deadline passed for 2026 cycle. Next cycle opens October 2026.",
         official_application_url="https://erasmus-plus.ec.europa.eu/opportunities/opportunities-for-individuals/students/erasmus-mundus-joint-masters",
-        source_id=sources_data[1].id,
+        source_id=src_erasmus.id,
         overview="High-level integrated study programs jointly delivered by international consortiums of higher education institutions across Europe with comprehensive EU funding covering full participation costs and monthly allowances.",
     )
-    db.add(sch2)
 
-    sch3 = Scholarship(
+    # Sweden: Swedish Institute SISGP
+    await get_or_create_scholarship(
+        db,
         name="Swedish Institute Scholarships for Global Professionals (SISGP)",
         provider="Swedish Institute (Ministry for Foreign Affairs)",
         country="Sweden",
@@ -426,12 +1299,13 @@ async def seed_initial_data(db: AsyncSession):
         status=OpportunityStatus.EXPIRED,
         status_reason="Deadline passed for Autumn 2026. Next cycle opens February 2027.",
         official_application_url="https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals/",
-        source_id=sources_data[2].id,
+        source_id=src_si.id,
         overview="Funded by the Swedish Ministry for Foreign Affairs. Aims to develop future global leaders who will contribute to the United Nations 2030 Agenda for Sustainable Development.",
     )
-    db.add(sch3)
 
-    sch4 = Scholarship(
+    # Switzerland: ETH Zurich ESOP
+    await get_or_create_scholarship(
+        db,
         name="ETH Zurich Excellence Scholarship & Opportunity Programme (ESOP)",
         provider="ETH Zurich Rectorate",
         country="Switzerland",
@@ -468,28 +1342,504 @@ async def seed_initial_data(db: AsyncSession):
         status=OpportunityStatus.UPCOMING,
         status_reason="Verified upcoming application cycle opens November 2026.",
         official_application_url="https://ethz.ch/students/en/studies/financial/scholarships/excellencescholarship.html",
-        source_id=sources_data[3].id,
+        source_id=src_eth.id,
         overview="The ESOP supports students with an exceptional track record in their Bachelor's studies with CHF 12,000 per semester towards living and study expenses, plus tuition waiver.",
     )
-    db.add(sch4)
+
+    # United States: Fulbright Foreign Student Program
+    await get_or_create_scholarship(
+        db,
+        name="Fulbright Foreign Student Program",
+        provider="U.S. Department of State",
+        country="United States",
+        university_id=None,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Engineering", "Data Science", "Public Policy", "Economics", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=2100.0,
+        stipend_currency="USD",
+        travel_support=True,
+        travel_allowance_amount=2500.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=7.0,
+        min_toefl=95.0,
+        eligible_nationalities=["International Candidates (160+ partner countries including Bangladesh, India, Pakistan, Brazil, Nigeria, Kenya)"],
+        work_experience_years_required=2.0,
+        required_documents=[
+            "Fulbright Online Application Form",
+            "Personal Statement / Study Objectives",
+            "Three Letters of Recommendation",
+            "Official Academic Transcripts and Diplomas",
+            "Valid Passport and Standardized Test Scores",
+        ],
+        application_steps=[
+            "Apply via the U.S. Embassy / Fulbright Commission in your home country",
+            "Complete in-country interview and academic review",
+            "IIE manages university placement and J-1 visa sponsorship in the United States",
+        ],
+        application_open_date="2026-02-01",
+        application_deadline="2026-06-15",
+        status=OpportunityStatus.OPEN,
+        status_reason="Verified open application windows across national Fulbright commissions.",
+        official_application_url="https://foreign.fulbrightonline.org/about/foreign-student-program",
+        source_id=src_fulbright.id,
+        overview="The flagship international educational exchange program sponsored by the U.S. government, providing complete tuition, living stipends, airfare, and health insurance for Master's study in the United States.",
+    )
+
+    # United Kingdom: Chevening Scholarships
+    await get_or_create_scholarship(
+        db,
+        name="Chevening Scholarships",
+        provider="UK Foreign, Commonwealth and Development Office",
+        country="United Kingdom",
+        university_id=None,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Artificial Intelligence", "Data Science", "Public Policy", "International Relations", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=1380.0,
+        stipend_currency="GBP",
+        travel_support=True,
+        travel_allowance_amount=1800.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.0,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=90.0,
+        eligible_nationalities=["Chevening-eligible countries (160+ countries globally)"],
+        work_experience_years_required=2.0,
+        required_documents=[
+            "Four Comprehensive Chevening Essay Questions (Leadership, Networking, Study in UK, Career Plan)",
+            "Two Reference Letters",
+            "Degree Certificates and Academic Transcripts",
+            "Three eligible UK Master's course selections",
+        ],
+        application_steps=[
+            "Submit online application via the Chevening portal between August and November",
+            "Undergo longlisting and regional British Embassy interview in March-April",
+            "Secure an unconditional offer from at least one chosen UK Master's program",
+        ],
+        application_open_date="2026-08-01",
+        application_deadline="2026-11-05",
+        status=OpportunityStatus.UPCOMING,
+        status_reason="Annual UK government cycle opens each August for next-year intake.",
+        official_application_url="https://www.chevening.org/scholarships/",
+        source_id=src_chevening.id,
+        overview="The UK government's global scholarship programme funded by the Foreign, Commonwealth and Development Office (FCDO) and partner organisations, offering full financial support to study for any eligible master's degree at any UK university.",
+    )
+
+    # Canada: Vanier Canada Graduate Scholarships
+    await get_or_create_scholarship(
+        db,
+        name="Vanier Canada Graduate Scholarships",
+        provider="Government of Canada",
+        country="Canada",
+        university_id=None,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Natural Sciences", "Engineering", "Health Research", "Social Sciences"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=4166.0,
+        stipend_currency="CAD",
+        travel_support=True,
+        travel_allowance_amount=2000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.7,
+        grading_scale=4.0,
+        min_ielts=7.0,
+        min_toefl=95.0,
+        eligible_nationalities=["All International Candidates", "Canadian Citizens", "Permanent Residents"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "Nomination letter from host Canadian institution",
+            "Research Proposal (2 pages)",
+            "Leadership Statement and Personal Reference",
+            "Official Transcripts from all post-secondary institutions",
+        ],
+        application_steps=[
+            "Apply for admission and request nomination from target Canadian university",
+            "University internal selection committee nominates selected candidates to national Tri-Agency",
+            "Tri-Agency selection committee announces recipients in April",
+        ],
+        application_open_date="2026-07-01",
+        application_deadline="2026-10-30",
+        status=OpportunityStatus.UPCOMING,
+        status_reason="Valued at CAD $50,000 per year for top-tier graduate researchers.",
+        official_application_url="https://vanier.gc.ca/en/home-accueil.html",
+        source_id=src_vanier.id,
+        overview="Canada's premier graduate scholarship program, designed to attract and retain world-class doctoral and postgraduate researchers to Canadian universities with $50,000 annual funding.",
+    )
+
+    # Australia: Australia Awards Scholarships
+    await get_or_create_scholarship(
+        db,
+        name="Australia Awards Scholarships",
+        provider="Australian Government (DFAT)",
+        country="Australia",
+        university_id=None,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Information Technology", "Agriculture", "Public Policy", "Health", "Engineering"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=2500.0,
+        stipend_currency="AUD",
+        travel_support=True,
+        travel_allowance_amount=3000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.0,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=84.0,
+        eligible_nationalities=["Indo-Pacific partner nations, Bangladesh, Bhutan, Cambodia, Indonesia, Nepal, Pakistan, Philippines, Sri Lanka, Vietnam"],
+        work_experience_years_required=1.0,
+        required_documents=[
+            "Australia Awards Application Form via OASIS portal",
+            "Certified academic transcripts and degree completion certificate",
+            "Proof of English language proficiency",
+            "Two Academic/Professional Referee Reports",
+        ],
+        application_steps=[
+            "Check country-specific eligibility on the DFAT Australia Awards website",
+            "Register and submit online application in the OASIS system",
+            "Shortlisted candidates attend interviews at Australian High Commission / Embassy",
+        ],
+        application_open_date="2026-02-01",
+        application_deadline="2026-04-30",
+        status=OpportunityStatus.OPEN,
+        status_reason="Annual DFAT application intake actively accepting submissions.",
+        official_application_url="https://www.dfat.gov.au/people-to-people/australia-awards/australia-awards-scholarships",
+        source_id=src_ausawards.id,
+        overview="Long-term development awards administered by the Australian Department of Foreign Affairs and Trade covering full tuition fees, return air travel, establishment allowance, and contribution to living expenses.",
+    )
+
+    # France: Eiffel Excellence Scholarship Program
+    await get_or_create_scholarship(
+        db,
+        name="Eiffel Excellence Scholarship Program",
+        provider="French Ministry for Europe and Foreign Affairs",
+        country="France",
+        university_id=None,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Artificial Intelligence", "Engineering", "Mathematics", "Law", "Management"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=1181.0,
+        stipend_currency="EUR",
+        travel_support=True,
+        travel_allowance_amount=1500.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.3,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=90.0,
+        eligible_nationalities=["All foreign nationalities (non-French citizens)"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "Curriculum Vitae (max 2 pages)",
+            "Professional project / Motivation statement",
+            "Academic Transcripts of all university years",
+            "Language certificate (English or French depending on course)",
+        ],
+        application_steps=[
+            "Contact target French higher education institution (e.g. Sorbonne, IP Paris)",
+            "The French institution approves and directly submits the Eiffel dossier on Campus France",
+            "Campus France announces laureates in April",
+        ],
+        application_open_date="2026-09-15",
+        application_deadline="2027-01-10",
+        status=OpportunityStatus.UPCOMING,
+        status_reason="Next application window opens Autumn 2026 via participating French universities.",
+        official_application_url="https://www.campusfrance.org/en/the-eiffel-scholarship-program-of-excellence",
+        source_id=src_eiffel.id,
+        overview="Developed by the French Ministry for Europe and Foreign Affairs to enable French higher education institutions to attract top foreign students for master's and PhD programs.",
+    )
+
+    # Netherlands: NL Scholarship (Holland Scholarship)
+    await get_or_create_scholarship(
+        db,
+        name="NL Scholarship (Holland Scholarship)",
+        provider="Dutch Ministry of Education & Nuffic",
+        country="Netherlands",
+        university_id=tudelft.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Engineering", "Data Science", "Artificial Intelligence", "Business"],
+        funding_type=FundingType.PARTIAL,
+        tuition_coverage_pct=50.0,
+        monthly_stipend=416.0,
+        stipend_currency="EUR",
+        travel_support=False,
+        travel_allowance_amount=0.0,
+        accommodation_support=False,
+        health_insurance=False,
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=90.0,
+        eligible_nationalities=["All non-EEA International Candidates"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "Admission letter from participating Dutch research university",
+            "Motivation letter explaining academic excellence and Dutch study rationale",
+            "Bachelor's Degree Transcripts",
+        ],
+        application_steps=[
+            "Apply for an eligible Master's program at TU Delft or other Dutch research university",
+            "Submit NL Scholarship request directly via the university application system",
+            "Universities notify successful recipients in May-June",
+        ],
+        application_open_date="2025-11-01",
+        application_deadline="2026-05-01",
+        status=OpportunityStatus.OPEN,
+        status_reason="€5,000 grant in the first year of study for non-EEA students.",
+        official_application_url="https://www.nuffic.nl/en/subjects/nl-scholarship",
+        source_id=src_nlschol.id,
+        overview="Financed by the Dutch Ministry of Education, Culture and Science together with Dutch research universities, awarding €5,000 to talented international students from outside the EEA.",
+    )
+
+    # Ireland: Government of Ireland International Education Scholarship (GOI-IES)
+    await get_or_create_scholarship(
+        db,
+        name="Government of Ireland International Education Scholarship (GOI-IES)",
+        provider="Higher Education Authority (HEA) Ireland",
+        country="Ireland",
+        university_id=tcd.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Data Science", "Biotechnology", "Fintech", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=833.0,
+        stipend_currency="EUR",
+        travel_support=True,
+        travel_allowance_amount=1000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.3,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=90.0,
+        eligible_nationalities=["All non-EU/EEA International Students"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "Offer letter from an Irish Higher Education Institution (HEI)",
+            "Two Academic References",
+            "Personal Statement on why you chose Ireland and chosen HEI",
+            "Academic Transcripts",
+        ],
+        application_steps=[
+            "Apply to and receive an offer from an eligible Irish institution (e.g. Trinity College Dublin)",
+            "Submit online application on the HEA GOI-IES application portal",
+            "Independent assessment panel awards scholarships in June",
+        ],
+        application_open_date="2026-01-20",
+        application_deadline="2026-03-24",
+        status=OpportunityStatus.OPEN,
+        status_reason="Provides full tuition fee waiver plus €10,000 living stipend for 1 year of study in Ireland.",
+        official_application_url="https://hea.ie/funding-governance-performance/funding/student-finance/government-of-ireland-international-education-scholarships/",
+        source_id=src_goiies.id,
+        overview="Awarded by the Government of Ireland through the Higher Education Authority, providing a full tuition fee waiver plus a €10,000 stipend for one year of full-time study at an Irish university.",
+    )
+
+    # Finland: Finland Scholarship
+    await get_or_create_scholarship(
+        db,
+        name="Finland Scholarship (Finnish Ministry of Education)",
+        provider="Finnish National Agency for Education & Universities",
+        country="Finland",
+        university_id=aalto.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Artificial Intelligence", "Clean Technology", "Engineering"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=416.0,
+        stipend_currency="EUR",
+        travel_support=True,
+        travel_allowance_amount=5000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=92.0,
+        eligible_nationalities=["All non-EU/EEA International Students"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "Application submitted concurrently with joint application to Finnish universities via Studyinfo.fi",
+            "Bachelor's Degree Transcripts and Diploma",
+            "Valid Passport and English Test Score",
+        ],
+        application_steps=[
+            "Apply for eligible Master's degree at Aalto University via Studyinfo.fi in January",
+            "Tick the 'Apply for Finland Scholarship' box in the application form",
+            "Admissions committee awards scholarship together with study place offer in April",
+        ],
+        application_open_date="2026-01-02",
+        application_deadline="2026-01-16",
+        status=OpportunityStatus.EXPIRED,
+        status_reason="Deadline passed for Autumn 2026. Next national intake opens January 2027.",
+        official_application_url="https://www.studyinfinland.fi/scholarships/finland-scholarships",
+        source_id=src_finland.id,
+        overview="Funded by the Finnish Ministry of Education and Culture, covering 100% tuition waiver for the 2-year Master's degree plus a €5,000 relocation allowance in the first year.",
+    )
+
+    # Italy: MAECI Study Grants
+    await get_or_create_scholarship(
+        db,
+        name="Italian Government (MAECI) Study Grants for Foreign Citizens",
+        provider="Ministry of Foreign Affairs and International Cooperation (MAECI)",
+        country="Italy",
+        university_id=polimi.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Engineering", "Design", "Architecture", "Natural Sciences", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=900.0,
+        stipend_currency="EUR",
+        travel_support=False,
+        travel_allowance_amount=0.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.0,
+        grading_scale=4.0,
+        min_ielts=6.0,
+        min_toefl=80.0,
+        eligible_nationalities=["Eligible foreign citizens from selected countries worldwide"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "StudyInItaly online application dossier",
+            "Bachelor's Degree Transcripts with certified Italian or English translation",
+            "Curriculum Vitae and Motivation Letter",
+            "Valid Passport copy",
+        ],
+        application_steps=[
+            "Register on the Study in Italy official government portal (studyinitaly.esteri.it)",
+            "Submit application before the annual June deadline",
+            "Italian diplomatic missions review and publish the list of winners in July",
+        ],
+        application_open_date="2026-05-01",
+        application_deadline="2026-06-14",
+        status=OpportunityStatus.OPEN,
+        status_reason="Annual MAECI call for applications open for international degree seekers.",
+        official_application_url="https://studyinitaly.esteri.it/en/call-for-procedure",
+        source_id=src_italy.id,
+        overview="Offered by the Italian Government to foreign students to foster international cooperation and cultural dissemination, providing full tuition exemption and a monthly allowance of €900.",
+    )
+
+    # Japan: Japanese Government (MEXT) Scholarship
+    await get_or_create_scholarship(
+        db,
+        name="Japanese Government (MEXT) University Recommendation Scholarship",
+        provider="Ministry of Education, Culture, Sports, Science and Technology (MEXT)",
+        country="Japan",
+        university_id=utokyo.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Information Science", "Robotics", "Engineering", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=144000.0,
+        stipend_currency="JPY",
+        travel_support=True,
+        travel_allowance_amount=200000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.3,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=85.0,
+        eligible_nationalities=["International candidates from countries with diplomatic relations with Japan"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "MEXT Application Form",
+            "Field of Study and Research Plan (max 3 pages)",
+            "Official Transcripts from Bachelor's studies",
+            "Recommendation Letter from Dean or Academic Advisor",
+            "Certificate of Health",
+        ],
+        application_steps=[
+            "Contact prospective supervising professor at University of Tokyo in October-November",
+            "University department submits recommendation to MEXT in January",
+            "MEXT confirms final awardees in June for October arrival",
+        ],
+        application_open_date="2026-10-01",
+        application_deadline="2026-12-10",
+        status=OpportunityStatus.UPCOMING,
+        status_reason="Fully funded with 100% tuition waiver, roundtrip flight tickets, and 144,000 JPY monthly stipend.",
+        official_application_url="https://www.mext.go.jp/a_menu/koutou/ryugaku/06452.htm",
+        source_id=src_mext.id,
+        overview="The prestigious Japanese Government scholarship program that provides international graduate students full tuition coverage, monthly living stipend of 144,000 JPY, and roundtrip economy airfare to Japan.",
+    )
+
+    # South Korea: Global Korea Scholarship (GKS)
+    await get_or_create_scholarship(
+        db,
+        name="Global Korea Scholarship (GKS - Graduate)",
+        provider="National Institute for International Education (NIIED)",
+        country="South Korea",
+        university_id=snu.id,
+        degree_level=DegreeLevel.MASTERS,
+        eligible_fields=["Computer Science", "Artificial Intelligence", "Semiconductor Engineering", "International Studies", "All Fields"],
+        funding_type=FundingType.FULLY_FUNDED,
+        tuition_coverage_pct=100.0,
+        monthly_stipend=1000000.0,
+        stipend_currency="KRW",
+        travel_support=True,
+        travel_allowance_amount=1500000.0,
+        accommodation_support=True,
+        health_insurance=True,
+        min_cgpa=3.2,
+        grading_scale=4.0,
+        min_ielts=6.5,
+        min_toefl=85.0,
+        eligible_nationalities=["Citizens of 140+ invited partner countries worldwide"],
+        work_experience_years_required=0.0,
+        required_documents=[
+            "GKS Applicant Form with Statement of Purpose",
+            "Two Letters of Recommendation in sealed envelopes",
+            "Bachelor's Degree Certificate with Apostille or Consular Authentication",
+            "Proof of Citizenship (Applicant & Parents)",
+        ],
+        application_steps=[
+            "Choose Embassy Track or University Track (direct application to Seoul National University)",
+            "Submit dossier in February-March",
+            "NIIED conducts second-round selection and announces final scholars in June",
+        ],
+        application_open_date="2026-02-10",
+        application_deadline="2026-03-31",
+        status=OpportunityStatus.OPEN,
+        status_reason="Full tuition coverage, monthly 1,000,000 KRW stipend, settlement allowance, and Korean language training.",
+        official_application_url="https://www.studyinkorea.go.kr/en/scholarship/gks_about.do",
+        source_id=src_gks.id,
+        overview="Funded by the South Korean Ministry of Education through NIIED to promote international exchange in education and mutual friendship between Korea and participating countries.",
+    )
 
     # 5. Default Demo / Admin User
-    admin_user = User(
-        email="admin@nextabroad.ai",
-        hashed_password=get_password_hash("AdminNextAbroad2026!"),
-        full_name="Platform Administrator",
-        role="admin",
-        is_active=True,
-    )
-    db.add(admin_user)
+    admin_res = await db.execute(select(User).where(User.email == "admin@nextabroad.ai"))
+    if not admin_res.scalar_one_or_none():
+        admin_user = User(
+            email="admin@nextabroad.ai",
+            hashed_password=get_password_hash("AdminNextAbroad2026!"),
+            full_name="Platform Administrator",
+            role="admin",
+            is_active=True,
+        )
+        db.add(admin_user)
 
-    student_user = User(
-        email="student@nextabroad.ai",
-        hashed_password=get_password_hash("StudentNextAbroad2026!"),
-        full_name="Tanvir Rahman",
-        role="student",
-        is_active=True,
-    )
-    db.add(student_user)
+    student_res = await db.execute(select(User).where(User.email == "student@nextabroad.ai"))
+    if not student_res.scalar_one_or_none():
+        student_user = User(
+            email="student@nextabroad.ai",
+            hashed_password=get_password_hash("StudentNextAbroad2026!"),
+            full_name="Tanvir Rahman",
+            role="student",
+            is_active=True,
+        )
+        db.add(student_user)
 
     await db.commit()

@@ -349,7 +349,10 @@ export default function OnboardingPage() {
                   <option value="EUR">EUR (€)</option>
                   <option value="GBP">GBP (£)</option>
                   <option value="CAD">CAD ($)</option>
+                  <option value="AUD">AUD (A$)</option>
                   <option value="SEK">SEK (kr)</option>
+                  <option value="CHF">CHF (Fr.)</option>
+                  <option value="JPY">JPY (¥)</option>
                   <option value="BDT">BDT (৳)</option>
                 </select>
               </div>
@@ -392,7 +395,22 @@ export default function OnboardingPage() {
                 Preferred Study Destinations
               </label>
               <div className="flex flex-wrap gap-2">
-                {["Germany", "Sweden", "Switzerland", "Canada", "United Kingdom", "Netherlands", "Finland", "Australia"].map(
+                {[
+                  "United States",
+                  "United Kingdom",
+                  "Canada",
+                  "Australia",
+                  "Germany",
+                  "Sweden",
+                  "Netherlands",
+                  "Switzerland",
+                  "Ireland",
+                  "France",
+                  "Finland",
+                  "Italy",
+                  "Japan",
+                  "South Korea",
+                ].map(
                   (c) => {
                     const selected = formData.preferred_countries.includes(c);
                     return (
