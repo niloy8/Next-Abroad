@@ -185,6 +185,11 @@ export interface DiscoveryItem {
   eligibility?: EligibilityResult;
   match_category?: string;
   match_explanation?: string;
+  visa_work_rights?: string;
+  post_study_work_visa?: string;
+  min_cgpa?: number;
+  min_ielts?: number;
+  eligible_nationalities?: string[];
 }
 
 export interface SavedOpportunity {

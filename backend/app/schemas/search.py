@@ -11,11 +11,18 @@ class SearchFilters(BaseModel):
     field_of_study: Optional[str] = None
     funding_type: Optional[str] = None
     max_budget: Optional[float] = None
+    max_tuition: Optional[float] = None
     intake: Optional[str] = None
     status: Optional[str] = None
     min_cgpa: Optional[float] = None
     english_test: Optional[str] = None
     min_english_score: Optional[float] = None
+    # Dynamic profile research parameters
+    origin_country: Optional[str] = None
+    student_cgpa: Optional[float] = None
+    student_ielts: Optional[float] = None
+    target_currency: Optional[str] = None
+    allows_work: Optional[bool] = None
 
 
 class DiscoverySearchRequest(BaseModel):
@@ -51,6 +58,13 @@ class DiscoveryItemResponse(BaseModel):
     eligibility: Optional[EligibilityResult] = None
     match_category: Optional[str] = None
     match_explanation: Optional[str] = None
+
+    # Country work rights & admission thresholds
+    visa_work_rights: Optional[str] = None
+    post_study_work_visa: Optional[str] = None
+    min_cgpa: Optional[float] = None
+    min_ielts: Optional[float] = None
+    eligible_nationalities: Optional[List[str]] = None
 
 
 class DiscoverySearchResponse(BaseModel):

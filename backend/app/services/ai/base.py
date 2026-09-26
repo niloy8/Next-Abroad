@@ -29,3 +29,17 @@ class AIProvider(ABC):
     ) -> Dict[str, Any]:
         """Parse natural language search query into structured search filters."""
         pass
+
+    @abstractmethod
+    async def research_opportunities(
+        self,
+        origin_country: str,
+        destination_country: str,
+        degree_level: str,
+        field_of_study: str,
+        cgpa: float,
+        ielts: float,
+        query: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Perform dynamic AI web research to discover real-time matching study and scholarship opportunities."""
+        pass

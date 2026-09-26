@@ -171,14 +171,16 @@ export const Navbar = () => {
                       <FiZap className="w-3.5 h-3.5 mr-2.5 text-slate-400" />
                       Edit Student Profile
                     </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setUserDropdown(false)}
-                      className="flex items-center px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-teal-900 hover:bg-teal-50/60 transition-colors"
-                    >
-                      <FiShield className="w-3.5 h-3.5 mr-2.5 text-slate-400" />
-                      Admin Quality Audit
-                    </Link>
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-teal-900 hover:bg-teal-50/60 transition-colors"
+                      >
+                        <FiShield className="w-3.5 h-3.5 mr-2.5 text-slate-400" />
+                        Admin Quality Audit
+                      </Link>
+                    )}
                   </div>
                   <div className="border-t border-slate-100 pt-1 mt-1">
                     <button
@@ -205,7 +207,7 @@ export const Navbar = () => {
                 Sign In
               </Link>
               <Link
-                href="/onboarding"
+                href="/register"
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs xl:text-sm font-semibold text-white bg-linear-to-r from-teal-700 to-teal-800 hover:from-teal-800 hover:to-teal-900 transition-all shadow-sm shadow-teal-900/15 hover:shadow-md whitespace-nowrap"
               >
                 Get Started
@@ -282,9 +284,18 @@ export const Navbar = () => {
                   <FiUser className="w-4 h-4 mr-3 text-teal-600" />
                   Student Dashboard
                 </Link>
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+                  >
+                    <FiShield className="w-4 h-4 mr-3 text-teal-600" />
+                    Admin Quality Audit
+                  </Link>
+                )}
                 <button
                   onClick={() => logout()}
-                  className="w-full text-left flex items-center px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 rounded-lg"
+                  className="w-full text-left flex items-center px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
                 >
                   <FiLogOut className="w-4 h-4 mr-3 text-rose-500" />
                   Sign Out ({user.full_name})
@@ -299,7 +310,7 @@ export const Navbar = () => {
                   Sign In
                 </Link>
                 <Link
-                  href="/onboarding"
+                  href="/register"
                   className="text-center px-3 py-2 rounded-lg text-sm font-semibold bg-teal-700 text-white hover:bg-teal-800"
                 >
                   Get Started

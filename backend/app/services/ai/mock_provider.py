@@ -1,6 +1,6 @@
 import re
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.services.ai.base import AIProvider
 
 
@@ -221,3 +221,142 @@ class MockAIProvider(AIProvider):
             extracted["funding_type"] = "Tuition Waiver"
 
         return extracted
+
+    async def research_opportunities(
+        self,
+        origin_country: str,
+        destination_country: str,
+        degree_level: str,
+        field_of_study: str,
+        cgpa: float,
+        ielts: float,
+        query: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        dest = destination_country.strip() if destination_country else "All"
+        field = field_of_study.strip() if field_of_study else "Computer Science"
+        deg = degree_level.strip() if degree_level else "Master's"
+
+        catalog = [
+            {
+                "title": f"M.Sc. in {field} (Technical University of Munich - TUM)",
+                "organization": "Technical University of Munich (TUM)",
+                "country": "Germany",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Tuition-Free (Subsidized Public University)",
+                "status": "OPEN",
+                "deadline": "2027-05-31",
+                "tuition_annual": 0.0,
+                "living_cost_annual": 11904.0,
+                "currency": "EUR",
+                "official_portal_url": "https://www.tum.de/en/studies/degree-programs",
+                "min_cgpa": 3.0,
+                "min_ielts": 6.5,
+                "visa_work_rights": "140 full days or 280 half days per calendar year. 18-month post-study job seeker visa.",
+                "post_study_work_visa": "18-month job seeker residence permit for German degree graduates.",
+                "match_explanation": f"Your CGPA of {cgpa} and IELTS {ielts} satisfy TUM's international admission thresholds. Public education in Germany is tuition-free for international students from {origin_country}.",
+            },
+            {
+                "title": f"Master of Science in {field} (KTH Royal Institute of Technology)",
+                "organization": "KTH Royal Institute of Technology",
+                "country": "Sweden",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Tuition Waiver & SI Scholarship Eligible",
+                "status": "UPCOMING",
+                "deadline": "2027-01-15",
+                "tuition_annual": 160000.0,
+                "living_cost_annual": 115000.0,
+                "currency": "SEK",
+                "official_portal_url": "https://www.kth.se/en/studies/master",
+                "min_cgpa": 3.2,
+                "min_ielts": 6.5,
+                "visa_work_rights": "No legal limit on working hours during studies. 12-month post-study job seeker residence permit.",
+                "post_study_work_visa": "1-year post-study residence permit to seek employment or start a business in Sweden.",
+                "match_explanation": f"Applicants from {origin_country} with IELTS >= 6.5 are fully eligible to apply through universityadmissions.se and are eligible for Swedish Institute (SI) Global Professionals Scholarship.",
+            },
+            {
+                "title": f"M.Sc. in {field} with Thesis (University of British Columbia)",
+                "organization": "University of British Columbia (UBC)",
+                "country": "Canada",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Fully Funded / Research Assistantship (GRA)",
+                "status": "OPEN",
+                "deadline": "2026-12-15",
+                "tuition_annual": 9500.0,
+                "living_cost_annual": 18000.0,
+                "currency": "CAD",
+                "official_portal_url": "https://www.grad.ubc.ca/prospective-students",
+                "min_cgpa": 3.3,
+                "min_ielts": 7.0,
+                "visa_work_rights": "24 hours per week off-campus during academic terms. Up to 3-year Post-Graduation Work Permit (PGWP).",
+                "post_study_work_visa": "Up to 3-year PGWP leading directly to Canadian Permanent Residence via Express Entry / PNP.",
+                "match_explanation": f"UBC Computer Science and Engineering research master's provides minimum funding packages ($24,000+/yr) for qualified candidates from {origin_country} with CGPA {cgpa}.",
+            },
+            {
+                "title": f"Master of Science in {field} (ETH Zurich)",
+                "organization": "ETH Zurich (Swiss Federal Institute of Technology)",
+                "country": "Switzerland",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Subsidized Public Tuition (ESOP Scholarship Eligible)",
+                "status": "OPEN",
+                "deadline": "2026-12-15",
+                "tuition_annual": 1460.0,
+                "living_cost_annual": 21000.0,
+                "currency": "CHF",
+                "official_portal_url": "https://ethz.ch/en/studies/master.html",
+                "min_cgpa": 3.5,
+                "min_ielts": 7.0,
+                "visa_work_rights": "15 hours per week during term time after first 6 months. 6-month job search residence permit.",
+                "post_study_work_visa": "6-month post-graduate permit to find employment matching Swiss academic qualifications.",
+                "match_explanation": f"World top-10 university charging very low tuition (~1,460 CHF/year). Excellent match for ambitious students in {field}.",
+            },
+            {
+                "title": f"Master of Computing ({field}) (Australian National University - ANU)",
+                "organization": "Australian National University (ANU)",
+                "country": "Australia",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Chancellor's International Scholarship Eligible",
+                "status": "OPEN",
+                "deadline": "2026-11-30",
+                "tuition_annual": 49000.0,
+                "living_cost_annual": 24000.0,
+                "currency": "AUD",
+                "official_portal_url": "https://programsandcourses.anu.edu.au/",
+                "min_cgpa": 3.0,
+                "min_ielts": 6.5,
+                "visa_work_rights": "48 hours per fortnight during study terms, unlimited during vacations. Subclass 485 post-study work visa (2-4 years).",
+                "post_study_work_visa": "Subclass 485 Temporary Graduate visa providing 2 to 3 years full-time work rights in Australia.",
+                "match_explanation": f"Students from {origin_country} holding CGPA {cgpa} and IELTS {ielts} qualify for direct admission and automatic 25%-50% tuition merit reductions.",
+            },
+            {
+                "title": f"M.Sc. in {field} & Software Engineering (University of Helsinki)",
+                "organization": "University of Helsinki",
+                "country": "Finland",
+                "degree_level": "Master's",
+                "field_of_study": field,
+                "funding_type": "Finland Scholarship (100% Tuition Waiver + €5,000 Relocation)",
+                "status": "UPCOMING",
+                "deadline": "2027-01-04",
+                "tuition_annual": 15000.0,
+                "living_cost_annual": 10000.0,
+                "currency": "EUR",
+                "official_portal_url": "https://www.helsinki.fi/en/admissions-and-education/apply-to-masters-programmes",
+                "min_cgpa": 3.2,
+                "min_ielts": 6.5,
+                "visa_work_rights": "30 hours per week student work rights. 2-year post-graduation job seeker residence permit.",
+                "post_study_work_visa": "2-year post-study residence permit for employment search or entrepreneurship.",
+                "match_explanation": f"Finnish state scholarship system offers 100% tuition waivers for top non-EU/EEA applicants from {origin_country}.",
+            },
+        ]
+
+        if dest != "All":
+            filtered = [item for item in catalog if item["country"].lower() == dest.lower()]
+            if filtered:
+                return filtered
+
+        return catalog
+

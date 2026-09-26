@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   FiUser,
@@ -27,7 +28,7 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -112,6 +113,37 @@ export default function OnboardingPage() {
       setSaving(false);
     }
   };
+
+  if (!loading && !user) {
+    return (
+      <div className="min-h-[calc(100vh-14rem)] flex items-center justify-center px-4 py-12">
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs max-w-md w-full text-center">
+          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4 font-bold">
+            <FiUser className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Sign Up or Sign In First</h2>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+            To build your study abroad plan, save matched opportunities, and track application deadlines, please create a free account or sign in.
+          </p>
+          <div className="mt-6 flex flex-col space-y-2.5">
+            <Link
+              href="/register?redirect=/onboarding"
+              className="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-xs"
+            >
+              <span>Create Free Student Account</span>
+              <FiArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/login?redirect=/onboarding"
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition"
+            >
+              Sign In to Existing Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">

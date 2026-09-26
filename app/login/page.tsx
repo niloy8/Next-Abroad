@@ -22,7 +22,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      router.push("/dashboard"); // Seamless fallback for demo
+      setError(err?.response?.data?.detail || err?.message || "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }

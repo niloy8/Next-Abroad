@@ -180,35 +180,32 @@ export default function AssistantPage() {
             return (
               <div
                 key={m.id}
-                className={`flex items-start gap-3 sm:gap-4 ${
-                  isUser ? "flex-row-reverse" : "flex-row"
-                } animate-in fade-in duration-200`}
+                className={`flex items-start gap-3 sm:gap-4 ${isUser ? "flex-row-reverse" : "flex-row"
+                  } animate-in fade-in duration-200`}
               >
                 {/* Avatar */}
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold shadow-2xs mt-1 ${
-                    isUser
-                      ? "bg-slate-900 text-white"
-                      : "bg-linear-to-tr from-teal-700 to-teal-600 text-white"
-                  }`}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold shadow-2xs mt-1 ${isUser
+                    ? "bg-slate-900 text-white"
+                    : "bg-linear-to-tr from-teal-700 to-teal-600 text-white"
+                    }`}
                 >
                   {isUser ? <FiUser className="w-4 h-4" /> : <FiZap className="w-4 h-4" />}
                 </div>
 
                 {/* Message Bubble Card */}
                 <div
-                  className={`relative group max-w-[88%] sm:max-w-[82%] rounded-2xl p-4 sm:p-5 transition-all ${
-                    isUser
-                      ? "bg-teal-700 text-white rounded-tr-xs shadow-sm"
-                      : "bg-white border border-slate-200/90 text-slate-800 rounded-tl-xs shadow-xs hover:border-slate-300"
-                  }`}
+                  className={`relative group max-w-[88%] sm:max-w-[82%] rounded-2xl p-4 sm:p-5 transition-all ${isUser
+                    ? "bg-teal-700 text-white rounded-tr-xs shadow-sm"
+                    : "bg-white border border-slate-200/90 text-slate-800 rounded-tl-xs shadow-xs hover:border-slate-300"
+                    }`}
                 >
                   {/* Header in AI bubble */}
                   {!isUser && (
                     <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100 text-xs">
                       <div className="flex items-center space-x-1.5 font-bold text-slate-900">
                         <span className="text-teal-700">StudyPath AI</span>
-                        <span className="text-[10px] font-semibold text-slate-400 font-normal">
+                        <span className="text-[10px]  text-slate-400 font-normal">
                           • {m.timestamp}
                         </span>
                       </div>
@@ -258,7 +255,7 @@ export default function AssistantPage() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 border border-slate-200/90 text-slate-700 hover:text-teal-800 hover:border-teal-300 hover:bg-teal-50/50 transition-all shadow-2xs"
                           >
-                            <span className="truncate max-w-[240px]">{c.title}</span>
+                            <span className="truncate max-w-240px">{c.title}</span>
                             <FiExternalLink className="w-3 h-3 ml-1.5 shrink-0 text-slate-400" />
                           </a>
                         ))}

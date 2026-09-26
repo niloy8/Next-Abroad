@@ -23,7 +23,7 @@ export default function RegisterPage() {
       await register(email, password, fullName);
       router.push("/onboarding");
     } catch (err: any) {
-      router.push("/onboarding");
+      setError(err?.response?.data?.detail || err?.message || "Failed to create account. Please check your details.");
     } finally {
       setLoading(false);
     }
